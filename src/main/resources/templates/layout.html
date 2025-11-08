@@ -25,10 +25,28 @@
 <main class="max-w-6xl mx-auto px-4 py-8">
     <div th:insert="${content}"></div>
 </main>
-<script th:if="${_csrf != null}" th:inline="javascript">
+<script th:inline="javascript">
+    const csrfToken = /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
     document.body.addEventListener('htmx:configRequest', function (event) {
-        event.detail.headers['X-CSRF-TOKEN'] = [[${_csrf.token}]];
+        if (csrfToken) {
+            event.detail.headers['X-CSRF-TOKEN'] = csrfToken;
+        }
     });
+
+    window.copyYaml = function (button) {
+        const yaml = button.getAttribute('data-yaml');
+        navigator.clipboard.writeText(yaml);
+        button.textContent = 'Copied!';
+        setTimeout(() => button.textContent = 'Copy', 1200);
+    };
+
+    window.insertYaml = function (button) {
+        const yamlField = document.querySelector('[name="yamlContent"]');
+        if (yamlField) {
+            yamlField.value = button.getAttribute('data-yaml');
+            yamlField.dispatchEvent(new Event('input'));
+        }
+    };
 </script>
 </body>
 </html>

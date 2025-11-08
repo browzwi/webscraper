@@ -8,9 +8,9 @@ import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
 import com.browzwi.webscraper.scraper.service.ScraperEngine;
 import com.browzwi.webscraper.service.ScraperRecipeService;
+import com.browzwi.webscraper.web.dto.RecipeExample;
 import com.browzwi.webscraper.web.dto.RecipeForm;
 import jakarta.validation.Valid;
-import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -53,6 +53,101 @@ public class RecipeController {
         return "recipes/list";
     }
 
+    @ModelAttribute("recipeExamples")
+    public List<RecipeExample> recipeExamples() {
+        return List.of(
+                new RecipeExample("site-pages",
+                        "Entire site and sub-pages",
+                        "Follows internal links while staying under the same domain.",
+                        """
+                        name: Site and Sub-Pages
+                        match:
+                          domains:
+                            - example.com
+                        page:
+                          hrefSelector: "a[href^='/']"
+                          fields:
+                            - name: title
+                              selectors: ["title", "h1"]
+                              source: TEXT
+                            - name: body
+                              selectors: ["article", "main"]
+                              source: HTML
+                        options:
+                          stripCss: true
+                          stripJs: true
+                        """),
+                new RecipeExample("sub-domains",
+                        "Site and sub-domains",
+                        "Targets multiple sub-domains with regex-based URL filters.",
+                        """
+                        name: Domain + Subdomains
+                        match:
+                          urlRegexes:
+                            - "https?://([a-z0-9-]+\\.)*example.com/.*"
+                        page:
+                          contentRoot: "body"
+                          fields:
+                            - name: links
+                              selectors: ["a[href]"]
+                              source: ATTR
+                              attributeName: href
+                              multiple: true
+                        options:
+                          extractHrefsFirst: true
+                        """),
+                new RecipeExample("single-page",
+                        "Single page with curated child pages",
+                        "Scrapes a specific page and only the hand-picked sub pages you supply.",
+                        """
+                        name: Single Page With Children
+                        match:
+                          domains: [example.com]
+                        page:
+                          hrefSelector: "section.related a"
+                          fields:
+                            - name: headline
+                              selectors: ["header h1"]
+                              source: TEXT
+                            - name: heroImage
+                              selectors: ["img.hero"]
+                              source: ATTR
+                              attributeName: src
+                        options:
+                          removeAttributes: true
+                        """
+                ),
+                new RecipeExample("facebook-page",
+                        "Facebook page with about/photos",
+                        "Targets any public Facebook page slug plus common child sections like /about or /photos.",
+                        """
+                        name: Facebook Public Page
+                        match:
+                          urlRegexes:
+                            - 'https://www.facebook.com/[A-Za-z0-9\\.]+($|/.*)'
+                        page:
+                          hrefSelector: "nav a[href*='facebook.com/']"
+                          fields:
+                            - name: title
+                              selectors: ["h1", "title"]
+                              source: TEXT
+                            - name: coverPhoto
+                              selectors: ["img[alt~='cover']", "image"]
+                              source: ATTR
+                              attributeName: src
+                            - name: sections
+                              selectors: ["div[role='main'] section"]
+                              source: HTML
+                              multiple: true
+                        options:
+                          stripCss: true
+                          stripJs: true
+                          removeAttributes: true
+                        """
+                )
+        );
+    }
+
     @GetMapping("/new")
     public String createForm(Model model) {
         model.addAttribute("pageTitle", "New Recipe");
@@ -62,13 +157,18 @@ public class RecipeController {
     }
 
     @GetMapping("/{id}")
-    public String editForm(@PathVariable UUID id, Model model) {
-        ScraperRecipe recipe = recipeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Recipe not found"));
-        model.addAttribute("pageTitle", "Edit Recipe");
-        model.addAttribute("recipe", RecipeForm.fromEntity(recipe));
-        model.addAttribute("formAction", "/recipes/" + id);
-        return "recipes/form";
+    public String editForm(@PathVariable UUID id, Model model, RedirectAttributes redirectAttributes) {
+        return recipeRepository.findById(id)
+                .map(recipe -> {
+                    model.addAttribute("pageTitle", "Edit Recipe");
+                    model.addAttribute("recipe", RecipeForm.fromEntity(recipe));
+                    model.addAttribute("formAction", "/recipes/" + id);
+                    return "recipes/form";
+                })
+                .orElseGet(() -> {
+                    redirectAttributes.addFlashAttribute("error", "Recipe not found");
+                    return "redirect:/recipes";
+                });
     }
 
     @PostMapping
