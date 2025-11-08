@@ -1,94 +1,141 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
 <main>
-    <div class="flex items-center justify-between mb-6">
+    <!-- Page Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-            <h1 class="text-2xl font-semibold" th:text="${#strings.isEmpty(recipe.id)} ? 'New Recipe' : 'Edit Recipe'"></h1>
-            <p class="text-slate-500">Define YAML recipes and validate them with HTMX-powered previews.</p>
+            <h1 class="text-white text-4xl font-black leading-tight tracking-tight" th:text="${#strings.isEmpty(recipe.id)} ? 'New Recipe' : 'Edit Recipe'"></h1>
+            <p class="text-zinc-400 text-base mt-1">Define YAML recipes and validate them with HTMX-powered previews.</p>
         </div>
-        <a href="/recipes" class="text-sm text-indigo-600">Back to list</a>
+        <a th:href="@{/recipes}" class="flex items-center gap-1 text-sm text-primary hover:text-primary-400">
+            <span class="material-symbols-outlined text-lg">arrow_back</span>
+            <span>Back to list</span>
+        </a>
     </div>
 
     <form th:action="@{${formAction}}" method="post" th:object="${recipe}" class="grid gap-6">
-        <div class="grid md:grid-cols-2 gap-4">
-            <div>
-                <label class="text-sm font-medium text-slate-700">Name</label>
-                <input type="text" th:field="*{name}" class="mt-1 w-full rounded-md border-slate-300" />
-                <p class="text-xs text-red-600" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+
+        <!-- Basic Info Card -->
+        <div class="card">
+            <h2 class="text-white text-lg font-bold mb-4">Basic Information</h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Name</label>
+                    <input type="text" th:field="*{name}" class="form-input-dark w-full" placeholder="My Scraper Recipe"/>
+                    <p class="text-xs text-red-400 mt-1" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Key</label>
+                    <input type="text" th:field="*{key}" class="form-input-dark w-full" placeholder="my-scraper-recipe"/>
+                    <p class="text-xs text-red-400 mt-1" th:if="${#fields.hasErrors('key')}" th:errors="*{key}"></p>
+                </div>
             </div>
-            <div>
-                <label class="text-sm font-medium text-slate-700">Key</label>
-                <input type="text" th:field="*{key}" class="mt-1 w-full rounded-md border-slate-300" />
-                <p class="text-xs text-red-600" th:if="${#fields.hasErrors('key')}" th:errors="*{key}"></p>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-zinc-300 mb-2">Description</label>
+                <input type="text" th:field="*{description}" class="form-input-dark w-full" placeholder="Brief description of what this recipe scrapes"/>
             </div>
-        </div>
-        <div>
-            <label class="text-sm font-medium text-slate-700">Description</label>
-            <input type="text" th:field="*{description}" class="mt-1 w-full rounded-md border-slate-300" />
-        </div>
-        <div class="flex items-center space-x-2">
-            <input type="checkbox" th:field="*{enabled}" class="rounded border-slate-300" />
-            <label class="text-sm text-slate-700">Enabled</label>
-        </div>
-        <div class="space-y-2">
-            <div class="flex items-center justify-between">
-                <label class="text-sm font-medium text-slate-700">YAML</label>
-                <span class="text-xs text-slate-500">Structure your scrape with clarity</span>
+            <div class="mt-4 flex items-center gap-2">
+                <input type="checkbox" th:field="*{enabled}" class="form-checkbox h-4 w-4 rounded bg-white/5 border-zinc-700 text-primary focus:ring-primary"/>
+                <label class="text-sm text-zinc-300">Enabled</label>
             </div>
-            <textarea th:field="*{yamlContent}" rows="12" class="mt-1 w-full rounded-md border-slate-300 font-mono"></textarea>
-            <p class="text-xs text-red-600" th:if="${#fields.hasErrors('yamlContent')}" th:errors="*{yamlContent}"></p>
         </div>
 
-        <section class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+        <!-- YAML Editor Card -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <label class="text-white text-lg font-bold">YAML Configuration</label>
+                <span class="text-xs text-zinc-400">Structure your scrape with clarity</span>
+            </div>
+            <textarea th:field="*{yamlContent}" rows="14"
+                      class="form-input-dark w-full font-mono text-sm scrollbar-dark"
+                      placeholder="name: Example Recipe&#10;description: Scrapes data from example.com&#10;match:&#10;  domains: [example.com]&#10;options:&#10;  stripCss: true&#10;page:&#10;  fields:&#10;    - name: title&#10;      selectors: [h1]"></textarea>
+            <p class="text-xs text-red-400 mt-1" th:if="${#fields.hasErrors('yamlContent')}" th:errors="*{yamlContent}"></p>
+        </div>
+
+        <!-- Example Recipes Section -->
+        <section class="rounded-xl border border-zinc-800 bg-zinc-900/30 p-6 space-y-4">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
-                    <h2 class="text-sm font-semibold text-slate-700">Example recipes</h2>
-                    <p class="text-xs text-slate-500">Preview, copy, or insert a curated best-practice configuration.</p>
+                    <h2 class="text-white text-base font-bold flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">lightbulb</span>
+                        Example Recipes
+                    </h2>
+                    <p class="text-xs text-zinc-400 mt-1">Preview, copy, or insert a curated best-practice configuration.</p>
                 </div>
-                <div class="flex items-center text-[11px] text-slate-500 space-x-3">
-                    <span class="inline-flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-indigo-200"></span><span>Insert</span></span>
-                    <span class="inline-flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-slate-300"></span><span>Copy</span></span>
+                <div class="flex items-center text-xs text-zinc-400 gap-4">
+                    <span class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-primary/30"></span>
+                        <span>Insert</span>
+                    </span>
+                    <span class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-zinc-700"></span>
+                        <span>Copy</span>
+                    </span>
                 </div>
             </div>
             <div class="grid gap-4 md:grid-cols-3">
                 <div th:each="example : ${recipeExamples}"
-                     class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col">
+                     class="bg-zinc-900/50 rounded-xl border border-zinc-800 p-4 flex flex-col hover:border-zinc-700 transition-colors">
                     <div>
-                        <p class="text-sm font-semibold text-slate-800" th:text="${example.title}"></p>
-                        <p class="text-xs text-slate-500 mt-1" th:text="${example.description}"></p>
+                        <p class="text-sm font-semibold text-white" th:text="${example.title}"></p>
+                        <p class="text-xs text-zinc-400 mt-1" th:text="${example.description}"></p>
                     </div>
-                    <pre class="mt-3 text-[11px] bg-slate-900 text-slate-100 rounded-lg p-3 overflow-auto flex-1"
+                    <pre class="mt-3 text-xs bg-black/50 text-zinc-300 rounded-lg p-3 overflow-auto flex-1 font-mono scrollbar-dark"
                          th:text="${example.yaml}"></pre>
-                    <div class="mt-3 flex items-center justify-between text-xs">
-                        <button type="button" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white"
+                    <div class="mt-3 flex items-center gap-2">
+                        <button type="button"
+                                class="flex-1 btn btn-primary text-xs py-2"
                                 th:attr="data-yaml=${example.yaml}"
-                                onclick="insertYaml(this)">Use Example</button>
-                        <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700"
+                                onclick="insertYaml(this)">
+                            <span class="material-symbols-outlined text-sm">download</span>
+                            <span>Use</span>
+                        </button>
+                        <button type="button"
+                                class="flex-1 btn btn-secondary text-xs py-2"
                                 th:attr="data-yaml=${example.yaml}"
-                                onclick="copyYaml(this)">Copy</button>
+                                onclick="copyYaml(this)">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span>Copy</span>
+                        </button>
                     </div>
                 </div>
             </div>
         </section>
 
-        <div class="flex items-center space-x-3">
-            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Save</button>
-            <div class="flex items-center space-x-2">
-                <input type="text" id="testUrl" name="url" placeholder="https://example.com" class="rounded-md border-slate-300 px-2 py-1" />
-                <button type="button" class="px-3 py-2 bg-slate-800 text-white rounded-lg"
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-3">
+            <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-outlined text-lg">save</span>
+                <span>Save Recipe</span>
+            </button>
+            <div class="flex flex-wrap items-center gap-2 flex-1">
+                <input type="text" id="testUrl" name="url"
+                       placeholder="https://example.com"
+                       class="form-input-dark flex-1 min-w-[200px]"/>
+                <button type="button"
+                        class="btn bg-zinc-800 text-white hover:bg-zinc-700"
                         hx-post="/recipes/test"
                         hx-target="#testResult"
                         hx-include="[name='yamlContent'],#testUrl">
-                    Test Recipe
+                    <span class="material-symbols-outlined text-lg">play_arrow</span>
+                    <span>Test Recipe</span>
                 </button>
             </div>
         </div>
     </form>
 
-    <section class="mt-10">
-        <h2 class="text-xl font-semibold mb-2">Test Output</h2>
-        <div id="testResult" class="bg-white rounded-xl shadow p-4 text-sm text-slate-700">
-            <p class="text-slate-500">Run a test to preview structured data and processed HTML.</p>
+    <!-- Test Output Section -->
+    <section class="mt-8">
+        <h2 class="text-white text-xl font-bold mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined">science</span>
+            Test Output
+        </h2>
+        <div id="testResult" class="card min-h-[200px]">
+            <div class="flex flex-col items-center justify-center py-8 text-zinc-400">
+                <span class="material-symbols-outlined text-5xl mb-2">terminal</span>
+                <p>Run a test to preview structured data and processed HTML.</p>
+            </div>
         </div>
     </section>
 </main>

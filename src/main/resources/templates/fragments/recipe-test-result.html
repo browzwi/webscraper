@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Fragment for recipe test results -->
+<div th:fragment="test-result">
+    <div th:if="${error}" class="bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl mb-4">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined">error</span>
+            <h3 class="font-bold">Test Failed</h3>
+        </div>
+        <p class="text-sm" th:text="${error}"></p>
+    </div>
+
+    <div th:if="${result}" class="space-y-4">
+        <!-- Success Message -->
+        <div class="bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl flex items-center gap-2">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>Recipe test completed successfully!</span>
+        </div>
+
+        <!-- Extracted Data -->
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+            <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined">data_object</span>
+                Extracted Data
+            </h3>
+            <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                 th:text="${result.structuredDataJson}"></pre>
+            <button type="button"
+                    class="mt-3 btn btn-secondary text-xs"
+                    th:attr="onclick='copyText(this, \'' + ${result.structuredDataJson} + '\')'"
+                    onclick="copyFromElement(this, 'pre')">
+                <span class="material-symbols-outlined text-sm">content_copy</span>
+                <span>Copy JSON</span>
+            </button>
+        </div>
+
+        <!-- Processed HTML -->
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+            <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined">code</span>
+                Processed HTML
+            </h3>
+            <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-64 scrollbar-dark font-mono text-xs"
+                 th:text="${result.processedHtml}"></pre>
+        </div>
+
+        <!-- Markdown Output -->
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4" th:if="${result.markdown}">
+            <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined">article</span>
+                Markdown
+            </h3>
+            <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-64 scrollbar-dark font-mono text-xs"
+                 th:text="${result.markdown}"></pre>
+        </div>
+
+        <!-- Processing Steps -->
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4" th:if="${result.progressSteps}">
+            <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined">list</span>
+                Processing Steps
+            </h3>
+            <ol class="space-y-2 text-sm text-zinc-300">
+                <li th:each="step, iterStat : ${result.progressSteps}"
+                    class="flex items-start gap-2">
+                    <span class="text-primary font-mono" th:text="${iterStat.count} + '.'"></span>
+                    <span th:text="${step}"></span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</div>
+</body>
+</html>

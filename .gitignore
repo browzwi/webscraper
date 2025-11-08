@@ -34,3 +34,6 @@ build/
 .vscode/
 .aider*
 .env
+
+src/main/resources/static/styles.css
+src/main/resources/static/mocks

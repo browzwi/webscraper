@@ -14,9 +14,9 @@ public class DashboardController {
     public String dashboard(Model model) {
         model.addAttribute("pageTitle", "Dashboard");
         model.addAttribute("jobStats", List.of(
-                Map.of("label", "Active Jobs", "value", 3),
-                Map.of("label", "Pending Targets", "value", 42),
-                Map.of("label", "Recipes", "value", 7)
+                Map.of("label", "Active Jobs", "value", 3, "icon", "work"),
+                Map.of("label", "Pending Targets", "value", 42, "icon", "pending"),
+                Map.of("label", "Recipes", "value", 7, "icon", "menu_book")
         ));
         return "dashboard";
     }

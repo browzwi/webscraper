@@ -1,32 +1,87 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
 <main>
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-semibold">Settings</h1>
-            <p class="text-slate-500">Tune global behaviour for every scrape job.</p>
-        </div>
+    <!-- Page Header -->
+    <div class="flex flex-col gap-2 mb-6">
+        <h1 class="text-white text-4xl font-black leading-tight tracking-tight">Settings</h1>
+        <p class="text-zinc-400 text-base">Tune global behaviour for every scrape job.</p>
     </div>
 
-    <div th:if="${message}" class="mb-4 bg-emerald-50 text-emerald-800 px-4 py-2 rounded-lg" th:text="${message}"></div>
+    <!-- Alert -->
+    <div th:if="${message}" class="mb-6 bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl flex items-center gap-2">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span th:text="${message}"></span>
+    </div>
 
-    <section class="bg-white rounded-2xl shadow p-6">
+    <!-- Settings Card -->
+    <section class="card max-w-4xl">
         <form th:object="${settings}" method="post" class="space-y-6">
             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-            <fieldset class="space-y-3">
-                <legend class="text-sm font-semibold text-slate-700">Preferred scraper engine</legend>
-                <p class="text-xs text-slate-500">Choose HtmlUnit for Java-only footprints or Playwright for modern, JS-heavy experiences.</p>
-                <div class="grid md:grid-cols-2 gap-4" th:each="option : ${options}">
-                    <label class="flex items-start space-x-3 border border-slate-200 rounded-xl p-4 hover:border-indigo-200 cursor-pointer">
-                        <input type="radio" th:field="*{fetcherType}" th:value="${option}" class="mt-1">
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800" th:text="${option}"></p>
-                            <p class="text-xs text-slate-500" th:text="${option.name() == 'HTMLUNIT'} ? 'Fast, headless browsing using HtmlUnit' : 'JS-capable Playwright stub (beta)'"></p>
+
+            <div>
+                <h2 class="text-white text-lg font-bold mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">settings</span>
+                    Scraper Engine
+                </h2>
+                <p class="text-sm text-zinc-400 mb-4">Choose HtmlUnit for Java-only footprints or Playwright for modern, JS-heavy experiences.</p>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                    <label th:each="option : ${options}"
+                           class="relative flex items-start gap-4 p-5 bg-white/5 border-2 rounded-xl cursor-pointer transition-all hover:border-zinc-700"
+                           th:classappend="${settings.fetcherType == option} ? 'border-primary bg-primary/10' : 'border-zinc-800'">
+                        <input type="radio"
+                               th:field="*{fetcherType}"
+                               th:value="${option}"
+                               class="form-radio h-5 w-5 mt-0.5 text-primary bg-white/5 border-zinc-700 focus:ring-primary"/>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="material-symbols-outlined text-2xl"
+                                      th:classappend="${option.name() == 'HTMLUNIT'} ? 'text-blue-400' : 'text-purple-400'"
+                                      th:text="${option.name() == 'HTMLUNIT'} ? 'code' : 'smart_toy'"></span>
+                                <p class="text-base font-bold text-white" th:text="${option}"></p>
+                            </div>
+                            <p class="text-sm text-zinc-400" th:text="${option.name() == 'HTMLUNIT'} ? 'Fast, headless browsing using HtmlUnit. Lightweight and efficient for most scraping tasks.' : 'JS-capable Playwright engine. Handles modern web apps with JavaScript rendering (beta).'"></p>
+                            <div class="mt-3 flex items-center gap-2 text-xs">
+                                <span th:if="${option.name() == 'HTMLUNIT'}" class="badge badge-info">Lightweight</span>
+                                <span th:if="${option.name() == 'HTMLUNIT'}" class="badge badge-success">Fast</span>
+                                <span th:if="${option.name() == 'PLAYWRIGHT'}" class="badge badge-warning">JavaScript</span>
+                                <span th:if="${option.name() == 'PLAYWRIGHT'}" class="badge badge-info">Modern</span>
+                            </div>
                         </div>
                     </label>
                 </div>
-            </fieldset>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Save Changes</button>
+            </div>
+
+            <!-- Future Settings Placeholder -->
+            <div class="pt-6 border-t border-zinc-800">
+                <h2 class="text-white text-lg font-bold mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">tune</span>
+                    Additional Settings
+                </h2>
+                <div class="p-4 bg-white/5 rounded-lg border border-zinc-800">
+                    <div class="flex items-center gap-3 text-zinc-400">
+                        <span class="material-symbols-outlined text-3xl">construction</span>
+                        <div>
+                            <p class="text-sm font-medium text-zinc-300">More settings coming soon</p>
+                            <p class="text-xs">Additional configuration options will be available in future updates.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3 pt-4">
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    <span>Save Changes</span>
+                </button>
+                <button type="button"
+                        onclick="window.location.reload()"
+                        class="btn btn-secondary">
+                    <span class="material-symbols-outlined text-lg">refresh</span>
+                    <span>Reset</span>
+                </button>
+            </div>
         </form>
     </section>
 </main>
