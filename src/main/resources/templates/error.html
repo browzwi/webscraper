@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main class="space-y-4">
+    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-6 shadow">
+        <p class="text-xs uppercase tracking-wide text-rose-500">Something went wrong</p>
+        <h1 class="text-2xl font-semibold text-rose-800" th:text="${error}">Error</h1>
+        <p class="text-sm text-rose-700" th:text="${message}"></p>
+    </div>
+    <section class="bg-white rounded-2xl shadow p-5 grid md:grid-cols-2 gap-4 text-sm text-slate-600">
+        <div>
+            <p class="text-xs uppercase text-slate-400">Status</p>
+            <p class="text-base font-semibold" th:text="${status}"></p>
+        </div>
+        <div>
+            <p class="text-xs uppercase text-slate-400">Path</p>
+            <p class="font-mono" th:text="${path}"></p>
+        </div>
+        <div>
+            <p class="text-xs uppercase text-slate-400">Timestamp</p>
+            <p th:text="${timestamp}"></p>
+        </div>
+    </section>
+</main>
+</html>

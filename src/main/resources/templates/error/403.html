@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main class="space-y-4">
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow">
+        <p class="text-xs uppercase tracking-wide text-amber-500">Access denied</p>
+        <h1 class="text-2xl font-semibold text-amber-800">You don't have permission</h1>
+        <p class="text-sm text-amber-700">If you expected access, ensure you're logged in and have the right role.</p>
+    </div>
+    <section class="bg-white rounded-2xl shadow p-5 text-sm text-slate-600 space-y-1">
+        <p><strong>Status:</strong> <span th:text="${status}"></span></p>
+        <p><strong>Path:</strong> <span th:text="${path}"></span></p>
+        <p><strong>Message:</strong> <span th:text="${message}"></span></p>
+    </section>
+</main>
+</html>

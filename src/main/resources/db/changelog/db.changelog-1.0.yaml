@@ -254,3 +254,28 @@ databaseChangeLog:
               - column:
                   name: options_json
                   type: longtext
+  - changeSet:
+      id: 005-app-settings
+      author: codex
+      changes:
+        - createTable:
+            tableName: app_settings
+            columns:
+              - column:
+                  name: setting_key
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: setting_value
+                  type: varchar(255)
+        - insert:
+            tableName: app_settings
+            columns:
+              - column:
+                  name: setting_key
+                  value: scraper.fetcher
+              - column:
+                  name: setting_value
+                  value: HTMLUNIT

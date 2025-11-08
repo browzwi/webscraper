@@ -3,6 +3,8 @@ package com.browzwi.webscraper.scraper.service;
 import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
 import com.browzwi.webscraper.scraper.service.HtmlProcessingService.ProcessedHtmlResult;
+import com.browzwi.webscraper.service.settings.ScrapeFetcherType;
+import com.browzwi.webscraper.service.settings.SettingsService;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -13,15 +15,21 @@ import org.springframework.stereotype.Service;
 public class ScraperEngine {
 
     private final HtmlFetcher htmlFetcher;
+    private final PlaywrightFetcher playwrightFetcher;
     private final HtmlProcessingService htmlProcessingService;
     private final FieldExtractionService fieldExtractionService;
+    private final SettingsService settingsService;
 
     public ScraperEngine(HtmlFetcher htmlFetcher,
+                         PlaywrightFetcher playwrightFetcher,
                          HtmlProcessingService htmlProcessingService,
-                         FieldExtractionService fieldExtractionService) {
+                         FieldExtractionService fieldExtractionService,
+                         SettingsService settingsService) {
         this.htmlFetcher = htmlFetcher;
+        this.playwrightFetcher = playwrightFetcher;
         this.htmlProcessingService = htmlProcessingService;
         this.fieldExtractionService = fieldExtractionService;
+        this.settingsService = settingsService;
     }
 
     public ScrapeExecutionResult execute(RecipeConfig recipe, String url, OptionsConfig overrides) {
@@ -29,7 +37,7 @@ public class ScraperEngine {
             throw new ScrapeException("Recipe is required");
         }
         try {
-            String rawHtml = htmlFetcher.fetch(url);
+            String rawHtml = selectFetcher().fetch(url);
             OptionsConfig effectiveOptions = mergeOptions(recipe.getOptions(), overrides);
             ProcessedHtmlResult processed = htmlProcessingService.process(rawHtml, effectiveOptions, recipe.getPage());
             Map<String, Object> fields = fieldExtractionService.extractFields(processed.document(), recipe.getPage());
@@ -43,6 +51,12 @@ public class ScraperEngine {
         } catch (RuntimeException ex) {
             throw new ScrapeException("Failed to execute scraper", ex);
         }
+    }
+
+    private PageFetcher selectFetcher() {
+        return settingsService.getFetcherType() == ScrapeFetcherType.PLAYWRIGHT
+                ? playwrightFetcher
+                : htmlFetcher;
     }
 
     private OptionsConfig mergeOptions(OptionsConfig base, OptionsConfig overrides) {

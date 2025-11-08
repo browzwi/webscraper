@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
-public class HtmlFetcher {
+public class HtmlFetcher implements PageFetcher {
 
     private final int timeoutMillis;
     private final String userAgent;
@@ -32,6 +32,7 @@ public class HtmlFetcher {
         this.maxRedirects = maxRedirects;
     }
 
+    @Override
     public String fetch(String url) {
         try (WebClient client = buildClient()) {
             WebRequest request = new WebRequest(new URL(url));

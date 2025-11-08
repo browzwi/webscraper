@@ -8,8 +8,11 @@ import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.PageConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
 import java.util.List;
+import com.browzwi.webscraper.service.settings.ScrapeFetcherType;
+import com.browzwi.webscraper.service.settings.SettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class ScraperEngineTest {
 
@@ -18,7 +21,10 @@ class ScraperEngineTest {
     @BeforeEach
     void setup() {
         HtmlFetcher fetcher = new StubHtmlFetcher("<html><body><h1 data-id=\"123\">Title</h1><a href=\"/foo\">Foo</a><script>var x = 1;</script></body></html>");
-        scraperEngine = new ScraperEngine(fetcher, new HtmlProcessingService(), new FieldExtractionService());
+        PlaywrightFetcher playwright = new StubPlaywrightFetcher();
+        SettingsService settingsService = Mockito.mock(SettingsService.class);
+        Mockito.when(settingsService.getFetcherType()).thenReturn(ScrapeFetcherType.HTMLUNIT);
+        scraperEngine = new ScraperEngine(fetcher, playwright, new HtmlProcessingService(), new FieldExtractionService(), settingsService);
     }
 
     @Test
@@ -65,6 +71,17 @@ class ScraperEngineTest {
         @Override
         public String fetch(String url) {
             return html;
+        }
+    }
+
+    private static class StubPlaywrightFetcher extends PlaywrightFetcher {
+        StubPlaywrightFetcher() {
+            super(true, 5000, "chromium", true);
+        }
+
+        @Override
+        public String fetch(String url) {
+            return "<html><body><h1>Playwright</h1></body></html>";
         }
     }
 }

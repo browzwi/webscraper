@@ -21,3 +21,8 @@ logging:
 webscraper:
   storage:
     root: ./data
+  fetcher:
+    playwright:
+      browser: chromium
+      headless: true
+      timeout: 20000

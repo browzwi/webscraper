@@ -15,3 +15,8 @@ webscraper:
     admin:
       username: admin
       plain-password: admin
+  fetcher:
+    playwright:
+      browser: chromium
+      headless: true
+      timeout: 20000
