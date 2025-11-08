@@ -13,6 +13,8 @@
         <div class="text-xl font-semibold">Web Scraper</div>
         <div class="space-x-4">
             <a href="/dashboard" class="text-slate-600 hover:text-indigo-600">Dashboard</a>
+            <a href="/recipes" class="text-slate-600 hover:text-indigo-600">Recipes</a>
+            <a href="/jobs" class="text-slate-600 hover:text-indigo-600">Jobs</a>
             <form action="/logout" method="post" class="inline">
                 <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                 <button class="text-slate-600 hover:text-indigo-600" type="submit">Logout</button>
@@ -23,5 +25,10 @@
 <main class="max-w-6xl mx-auto px-4 py-8">
     <div th:insert="${content}"></div>
 </main>
+<script th:if="${_csrf != null}" th:inline="javascript">
+    document.body.addEventListener('htmx:configRequest', function (event) {
+        event.detail.headers['X-CSRF-TOKEN'] = [[${_csrf.token}]];
+    });
+</script>
 </body>
 </html>

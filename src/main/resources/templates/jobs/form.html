@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="layout :: layout(~{::main})">
+<main>
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-semibold">Create Job</h1>
+            <p class="text-slate-500">Bundle URLs, pick overrides, and let Quartz orchestrate the run.</p>
+        </div>
+        <a href="/jobs" class="text-sm text-indigo-600">Back to list</a>
+    </div>
+
+    <form th:object="${job}" method="post" th:action="@{/jobs}" class="grid gap-6">
+        <div>
+            <label class="text-sm font-medium text-slate-700">Name</label>
+            <input type="text" th:field="*{name}" class="mt-1 w-full rounded-md border-slate-300" />
+            <p class="text-xs text-red-600" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+        </div>
+        <div>
+            <label class="text-sm font-medium text-slate-700">Recipe</label>
+            <select th:field="*{recipeId}" class="mt-1 w-full rounded-md border-slate-300">
+                <option value="" disabled selected>Choose recipe</option>
+                <option th:each="recipe : ${recipes}" th:value="${recipe.id}" th:text="${recipe.name}"></option>
+            </select>
+            <p class="text-xs text-red-600" th:if="${#fields.hasErrors('recipeId')}" th:errors="*{recipeId}"></p>
+        </div>
+        <div>
+            <label class="text-sm font-medium text-slate-700">URLs (one per line)</label>
+            <textarea rows="6" th:field="*{urls}" class="mt-1 w-full rounded-md border-slate-300 font-mono"></textarea>
+            <p class="text-xs text-red-600" th:if="${#fields.hasErrors('urls')}" th:errors="*{urls}"></p>
+        </div>
+        <div>
+            <label class="text-sm font-medium text-slate-700">Cron Expression (optional)</label>
+            <input type="text" th:field="*{cronExpression}" class="mt-1 w-full rounded-md border-slate-300" placeholder="0 0 * * * ?" />
+        </div>
+        <fieldset class="border border-slate-200 rounded-lg p-4 space-y-2">
+            <legend class="text-sm font-semibold text-slate-700">Overrides</legend>
+            <label class="flex items-center space-x-2 text-sm text-slate-700">
+                <input type="checkbox" th:field="*{stripCss}" class="rounded border-slate-300" />
+                <span>Strip CSS</span>
+            </label>
+            <label class="flex items-center space-x-2 text-sm text-slate-700">
+                <input type="checkbox" th:field="*{stripJs}" class="rounded border-slate-300" />
+                <span>Strip JavaScript</span>
+            </label>
+            <label class="flex items-center space-x-2 text-sm text-slate-700">
+                <input type="checkbox" th:field="*{removeAttributes}" class="rounded border-slate-300" />
+                <span>Remove attributes</span>
+            </label>
+            <label class="flex items-center space-x-2 text-sm text-slate-700">
+                <input type="checkbox" th:field="*{extractHrefsFirst}" class="rounded border-slate-300" />
+                <span>Extract HREFs first</span>
+            </label>
+        </fieldset>
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Create Job</button>
+    </form>
+</main>
+</html>

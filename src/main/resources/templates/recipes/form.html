@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="layout :: layout(~{::main})">
+<main>
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-semibold" th:text="${#strings.isEmpty(recipe.id)} ? 'New Recipe' : 'Edit Recipe'"></h1>
+            <p class="text-slate-500">Define YAML recipes and validate them with HTMX-powered previews.</p>
+        </div>
+        <a href="/recipes" class="text-sm text-indigo-600">Back to list</a>
+    </div>
+
+    <form th:action="@{${formAction}}" method="post" th:object="${recipe}" class="grid gap-6">
+        <div class="grid md:grid-cols-2 gap-4">
+            <div>
+                <label class="text-sm font-medium text-slate-700">Name</label>
+                <input type="text" th:field="*{name}" class="mt-1 w-full rounded-md border-slate-300" />
+                <p class="text-xs text-red-600" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-slate-700">Key</label>
+                <input type="text" th:field="*{key}" class="mt-1 w-full rounded-md border-slate-300" />
+                <p class="text-xs text-red-600" th:if="${#fields.hasErrors('key')}" th:errors="*{key}"></p>
+            </div>
+        </div>
+        <div>
+            <label class="text-sm font-medium text-slate-700">Description</label>
+            <input type="text" th:field="*{description}" class="mt-1 w-full rounded-md border-slate-300" />
+        </div>
+        <div class="flex items-center space-x-2">
+            <input type="checkbox" th:field="*{enabled}" class="rounded border-slate-300" />
+            <label class="text-sm text-slate-700">Enabled</label>
+        </div>
+        <div>
+            <label class="text-sm font-medium text-slate-700">YAML</label>
+            <textarea th:field="*{yamlContent}" rows="12" class="mt-1 w-full rounded-md border-slate-300 font-mono"></textarea>
+            <p class="text-xs text-red-600" th:if="${#fields.hasErrors('yamlContent')}" th:errors="*{yamlContent}"></p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Save</button>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="testUrl" name="url" placeholder="https://example.com" class="rounded-md border-slate-300 px-2 py-1" />
+                <button type="button" class="px-3 py-2 bg-slate-800 text-white rounded-lg"
+                        hx-post="/recipes/test"
+                        hx-target="#testResult"
+                        hx-include="[name='yamlContent'],#testUrl">
+                    Test Recipe
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <section class="mt-10">
+        <h2 class="text-xl font-semibold mb-2">Test Output</h2>
+        <div id="testResult" class="bg-white rounded-xl shadow p-4 text-sm text-slate-700">
+            <p class="text-slate-500">Run a test to preview structured data and processed HTML.</p>
+        </div>
+    </section>
+</main>
+</html>

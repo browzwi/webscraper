@@ -47,6 +47,9 @@ public class ScrapeJob {
     @Column(name = "requested_by", length = 64)
     private String requestedBy;
 
+    @Column(name = "options_json", columnDefinition = "longtext")
+    private String optionsJson;
+
     public UUID getId() {
         return id;
     }
@@ -97,5 +100,13 @@ public class ScrapeJob {
 
     public void setRequestedBy(String requestedBy) {
         this.requestedBy = requestedBy;
+    }
+
+    public String getOptionsJson() {
+        return optionsJson;
+    }
+
+    public void setOptionsJson(String optionsJson) {
+        this.optionsJson = optionsJson;
     }
 }

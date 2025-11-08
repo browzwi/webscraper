@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="result">
+    <div class="grid md:grid-cols-2 gap-4">
+        <div>
+            <h3 class="text-sm font-semibold text-slate-700">Structured Data</h3>
+            <pre class="mt-2 bg-slate-900 text-emerald-200 text-xs rounded-lg p-3 overflow-auto" th:text="${structured}"></pre>
+        </div>
+        <div>
+            <h3 class="text-sm font-semibold text-slate-700">Processed HTML</h3>
+            <pre class="mt-2 bg-slate-900 text-indigo-100 text-xs rounded-lg p-3 overflow-auto" th:text="${processedHtml}"></pre>
+        </div>
+    </div>
+    <details class="mt-4">
+        <summary class="cursor-pointer text-sm text-slate-600">Raw HTML</summary>
+        <pre class="mt-2 bg-slate-900 text-slate-100 text-xs rounded-lg p-3 overflow-auto" th:text="${rawHtml}"></pre>
+    </details>
+</div>
+</body>
+</html>

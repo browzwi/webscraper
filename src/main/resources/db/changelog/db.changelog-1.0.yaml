@@ -244,3 +244,13 @@ databaseChangeLog:
                   name: plain_password
                   value: admin
             where: username = 'admin'
+  - changeSet:
+      id: 004-job-options-json
+      author: codex
+      changes:
+        - addColumn:
+            tableName: scrape_jobs
+            columns:
+              - column:
+                  name: options_json
+                  type: longtext

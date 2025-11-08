@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="layout :: layout(~{::main})">
+<main>
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-semibold">Scrape Jobs</h1>
+            <p class="text-slate-500">Track job status and inspect recent executions.</p>
+        </div>
+        <a class="px-4 py-2 bg-indigo-600 text-white rounded-lg" href="/jobs/new">New Job</a>
+    </div>
+
+    <div th:if="${message}" class="mb-4 bg-emerald-50 text-emerald-800 px-4 py-2 rounded-lg" th:text="${message}"></div>
+
+    <div class="bg-white rounded-xl shadow">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Recipe</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Schedule</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+            </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-100">
+            <tr th:each="job : ${jobs}">
+                <td class="px-6 py-4 text-sm font-medium text-slate-900" th:text="${job.name}"></td>
+                <td class="px-6 py-4 text-sm text-slate-600" th:text="${job.recipe.name}"></td>
+                <td class="px-6 py-4 text-sm">
+                    <span class="px-2 py-1 rounded-full text-xs"
+                          th:text="${job.status}"
+                          th:classappend="${job.status.name().contains('FAIL')} ? 'bg-rose-50 text-rose-700' : job.status.name().contains('RUN') ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'"></span>
+                </td>
+                <td class="px-6 py-4 text-sm text-slate-500" th:text="${job.scheduleCron} ?: 'One shot'"></td>
+                <td class="px-6 py-4 text-right">
+                    <a th:href="@{'/jobs/' + ${job.id}}" class="text-indigo-600 text-sm">Details</a>
+                </td>
+            </tr>
+            <tr th:if="${jobs.isEmpty()}">
+                <td colspan="5" class="px-6 py-4 text-center text-slate-500">No jobs scheduled yet.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</html>
