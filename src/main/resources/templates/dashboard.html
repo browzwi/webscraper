@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="layout :: layout(~{::main})">
+<main>
+    <section class="mb-8">
+        <h1 class="text-2xl font-semibold mb-4">Welcome back</h1>
+        <p class="text-slate-600">Use the cards below to monitor recipes, jobs, and scraping activity. Tailwind provides the styling and HTMX powers the live widgets.</p>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-3">
+        <div class="bg-white rounded-xl shadow p-5" th:each="stat : ${jobStats}">
+            <div class="text-sm text-slate-500" th:text="${stat.label}"></div>
+            <div class="text-3xl font-semibold mt-2" th:text="${stat.value}"></div>
+        </div>
+    </section>
+
+    <section class="mt-10 bg-white rounded-xl shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-semibold">Server time</h2>
+                <p class="text-slate-500">HTMX swaps this content without a page reload.</p>
+            </div>
+            <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg"
+                    hx-get="/fragments/server-time"
+                    hx-target="#serverTime"
+                    hx-swap="innerHTML">
+                Refresh
+            </button>
+        </div>
+        <div id="serverTime" class="mt-4 text-lg" hx-trigger="load" hx-get="/fragments/server-time"></div>
+    </section>
+</main>
+</html>
