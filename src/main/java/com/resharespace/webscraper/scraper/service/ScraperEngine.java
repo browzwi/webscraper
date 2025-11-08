@@ -19,17 +19,20 @@ public class ScraperEngine {
     private final HtmlProcessingService htmlProcessingService;
     private final FieldExtractionService fieldExtractionService;
     private final SettingsService settingsService;
+    private final MarkdownConversionService markdownConversionService;
 
     public ScraperEngine(HtmlFetcher htmlFetcher,
                          PlaywrightFetcher playwrightFetcher,
                          HtmlProcessingService htmlProcessingService,
                          FieldExtractionService fieldExtractionService,
-                         SettingsService settingsService) {
+                         SettingsService settingsService,
+                         MarkdownConversionService markdownConversionService) {
         this.htmlFetcher = htmlFetcher;
         this.playwrightFetcher = playwrightFetcher;
         this.htmlProcessingService = htmlProcessingService;
         this.fieldExtractionService = fieldExtractionService;
         this.settingsService = settingsService;
+        this.markdownConversionService = markdownConversionService;
     }
 
     public ScrapeExecutionResult execute(RecipeConfig recipe, String url, OptionsConfig overrides) {
@@ -47,7 +50,9 @@ public class ScraperEngine {
             structuredData.put("url", url);
             structuredData.put("timestamp", Instant.now().toString());
 
-            return new ScrapeExecutionResult(rawHtml, processed.processedHtml(), structuredData, processed.hrefs());
+            String markdown = markdownConversionService.toMarkdown(processed.processedHtml());
+
+            return new ScrapeExecutionResult(rawHtml, processed.processedHtml(), markdown, structuredData, processed.hrefs());
         } catch (RuntimeException ex) {
             throw new ScrapeException("Failed to execute scraper", ex);
         }
@@ -78,6 +83,7 @@ public class ScraperEngine {
 
     public record ScrapeExecutionResult(String rawHtml,
                                         String processedHtml,
+                                        String processedMarkdown,
                                         Map<String, Object> structuredData,
                                         List<String> hrefs) {
     }

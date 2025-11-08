@@ -39,9 +39,11 @@ public class DevAdminPasswordInitializer implements ApplicationRunner {
             return;
         }
         userRepository.findByUsername(adminUsername).ifPresent(user -> {
-            user.setPasswordHash(passwordEncoder.encode(adminPlainPassword));
-            user.setPlainPassword(adminPlainPassword);
-            log.info("Dev/test admin password reset for user '{}'", adminUsername);
+            String encoded = passwordEncoder.encode(adminPlainPassword);
+            if (!passwordEncoder.matches(adminPlainPassword, user.getPasswordHash())) {
+                userRepository.updatePassword(adminUsername, encoded, adminPlainPassword);
+                log.info("Dev/test admin password reset for user '{}'", adminUsername);
+            }
         });
     }
 }

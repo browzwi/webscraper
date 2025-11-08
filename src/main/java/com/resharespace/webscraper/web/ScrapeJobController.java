@@ -6,8 +6,9 @@ import com.browzwi.webscraper.domain.ScrapeJob;
 import com.browzwi.webscraper.domain.ScrapeResultData;
 import com.browzwi.webscraper.domain.ScrapeTarget;
 import com.browzwi.webscraper.repository.ScraperRecipeRepository;
-import com.browzwi.webscraper.storage.FileStorageService;
 import com.browzwi.webscraper.service.ScrapeJobService;
+import com.browzwi.webscraper.scraper.service.MarkdownConversionService;
+import com.browzwi.webscraper.storage.FileStorageService;
 import com.browzwi.webscraper.web.dto.JobForm;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -33,15 +34,18 @@ public class ScrapeJobController {
     private final ScrapeJobService jobService;
     private final ScraperRecipeRepository recipeRepository;
     private final FileStorageService storageService;
+    private final MarkdownConversionService markdownConversionService;
     private final ObjectMapper objectMapper;
 
     public ScrapeJobController(ScrapeJobService jobService,
                                ScraperRecipeRepository recipeRepository,
                                FileStorageService storageService,
+                               MarkdownConversionService markdownConversionService,
                                ObjectMapper objectMapper) {
         this.jobService = jobService;
         this.recipeRepository = recipeRepository;
         this.storageService = storageService;
+        this.markdownConversionService = markdownConversionService;
         this.objectMapper = objectMapper.copy().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
@@ -102,10 +106,12 @@ public class ScrapeJobController {
                 .orElse("No raw HTML stored yet");
         String processedHtml = Optional.ofNullable(storageService.loadProcessedHtml(jobId, targetId))
                 .orElse("No processed HTML stored yet");
+        String processedMarkdown = markdownConversionService.toMarkdown(processedHtml);
         model.addAttribute("target", target);
         model.addAttribute("structured", structured);
         model.addAttribute("rawHtml", rawHtml);
         model.addAttribute("processedHtml", processedHtml);
+        model.addAttribute("processedMarkdown", processedMarkdown);
         return "jobs/target-details :: content";
     }
 

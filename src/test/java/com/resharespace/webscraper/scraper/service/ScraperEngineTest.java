@@ -7,6 +7,7 @@ import com.browzwi.webscraper.scraper.model.FieldConfig;
 import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.PageConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
+import com.browzwi.webscraper.scraper.service.MarkdownConversionService;
 import java.util.List;
 import com.browzwi.webscraper.service.settings.ScrapeFetcherType;
 import com.browzwi.webscraper.service.settings.SettingsService;
@@ -24,7 +25,7 @@ class ScraperEngineTest {
         PlaywrightFetcher playwright = new StubPlaywrightFetcher();
         SettingsService settingsService = Mockito.mock(SettingsService.class);
         Mockito.when(settingsService.getFetcherType()).thenReturn(ScrapeFetcherType.HTMLUNIT);
-        scraperEngine = new ScraperEngine(fetcher, playwright, new HtmlProcessingService(), new FieldExtractionService(), settingsService);
+        scraperEngine = new ScraperEngine(fetcher, playwright, new HtmlProcessingService(), new FieldExtractionService(), settingsService, new MarkdownConversionService());
     }
 
     @Test

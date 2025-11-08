@@ -210,10 +210,12 @@ public class RecipeController {
             model.addAttribute("structured", objectMapper.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(result.structuredData()));
             model.addAttribute("processedHtml", result.processedHtml());
+            model.addAttribute("processedMarkdown", result.processedMarkdown());
             model.addAttribute("rawHtml", result.rawHtml());
         } catch (Exception e) {
             model.addAttribute("structured", "Test failed: " + e.getMessage());
             model.addAttribute("processedHtml", "");
+            model.addAttribute("processedMarkdown", "");
             model.addAttribute("rawHtml", "");
         }
         return "recipes/test-result :: result";

@@ -22,7 +22,17 @@
                     </button>
                 </div>
             </div>
-            <pre id="testProcessedHtml" class="mt-2 bg-slate-900 text-indigo-100 text-xs rounded-lg p-3 overflow-auto" th:text="${processedHtml}"></pre>
+            <pre id="testProcessedHtml" class="mt-2 bg-slate-900 text-indigo-100 text-xs rounded-lg p-3 overflow-auto max-h-80" th:text="${processedHtml}"></pre>
+        </div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-4 mt-4">
+        <div>
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-700">Processed Markdown</h3>
+                <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700"
+                        onclick="copyFromElement(this, '#testProcessedMarkdown')">Copy</button>
+            </div>
+            <pre id="testProcessedMarkdown" class="mt-2 bg-slate-900 text-amber-100 text-xs rounded-lg p-3 overflow-auto max-h-80" th:text="${processedMarkdown}"></pre>
         </div>
     </div>
     <details class="mt-4">
