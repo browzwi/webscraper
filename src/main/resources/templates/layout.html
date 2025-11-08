@@ -34,11 +34,16 @@
         }
     });
 
+    function notify(button, tempText) {
+        const original = button.textContent;
+        button.textContent = tempText;
+        setTimeout(() => button.textContent = original, 1200);
+    }
+
     window.copyYaml = function (button) {
         const yaml = button.getAttribute('data-yaml');
         navigator.clipboard.writeText(yaml);
-        button.textContent = 'Copied!';
-        setTimeout(() => button.textContent = 'Copy', 1200);
+        notify(button, 'Copied!');
     };
 
     window.insertYaml = function (button) {
@@ -46,6 +51,15 @@
         if (yamlField) {
             yamlField.value = button.getAttribute('data-yaml');
             yamlField.dispatchEvent(new Event('input'));
+            notify(button, 'Inserted');
+        }
+    };
+
+    window.copyFromElement = function (button, selector) {
+        const el = document.querySelector(selector);
+        if (el) {
+            navigator.clipboard.writeText(el.textContent || '');
+            notify(button, 'Copied!');
         }
     };
 </script>

@@ -13,8 +13,21 @@
             <pre class="mt-2 bg-slate-900 text-emerald-200 text-xs rounded-lg p-3 overflow-auto" th:text="${structured}"></pre>
         </div>
         <div>
-            <h3 class="text-sm font-semibold text-slate-700">Processed HTML</h3>
-            <pre class="mt-2 bg-slate-900 text-indigo-100 text-xs rounded-lg p-3 overflow-auto" th:text="${processedHtml}"></pre>
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-700">Processed HTML</h3>
+                <div class="flex items-center space-x-2 text-xs">
+                    <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700"
+                            th:attr="onclick=${'copyFromElement(this, \'#processed-'+target.id+'\')'}">Copy</button>
+                    <button type="button" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white"
+                            hx-post="/utils/beautify"
+                            hx-swap="outerHTML"
+                            th:attr="hx-target=${'#processed-'+target.id}, hx-vals=${'js:{html: document.querySelector(\\'#processed-'+target.id+'\\').textContent, targetId: \\'processed-'+target.id+'\\'}'}">
+                        Beautify
+                    </button>
+                </div>
+            </div>
+            <pre class="mt-2 bg-slate-900 text-indigo-100 text-xs rounded-lg p-3 overflow-auto"
+                 th:id="${'processed-'+target.id}" th:text="${processedHtml}"></pre>
         </div>
     </div>
     <details class="mt-4">
