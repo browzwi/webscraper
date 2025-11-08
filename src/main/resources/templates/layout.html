@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="dark" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${pageTitle} ?: 'Web Scraper'"></title>
-    <link rel="stylesheet" th:href="@{/styles.css}">
-    <script th:src="@{/webjars/htmx.org/1.9.12/dist/htmx.min.js}"></script>
-</head>
+<th:block th:replace="~{fragments/head :: common-head(${pageTitle})}"></th:block>
 <body class="bg-background-dark min-h-screen font-display">
 <div class="relative flex min-h-screen w-full flex-col">
     <!-- Header -->
