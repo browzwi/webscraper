@@ -220,6 +220,6 @@ public class RecipeController {
             model.addAttribute("rawHtml", "");
             model.addAttribute("progressSteps", List.of("Failed: " + e.getMessage()));
         }
-        return "recipes/test-result :: result";
+        return "fragments/recipe-test-result :: test-result";
     }
 }

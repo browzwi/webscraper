@@ -117,10 +117,17 @@
                         class="btn bg-zinc-800 text-white hover:bg-zinc-700"
                         hx-post="/recipes/test"
                         hx-target="#testResult"
-                        hx-include="[name='yamlContent'],#testUrl">
+                        hx-swap="outerHTML"
+                        hx-include="[name='yamlContent'],#testUrl"
+                        hx-indicator="#testRecipeSpinner">
                     <span class="material-symbols-outlined text-lg">play_arrow</span>
                     <span>Test Recipe</span>
                 </button>
+                <div id="testRecipeSpinner"
+                     class="htmx-indicator flex items-center gap-2 text-xs text-zinc-400">
+                    <span class="inline-flex w-3 h-3 border-2 border-white/60 border-t-transparent rounded-full animate-spin"></span>
+                    <span>Testing...</span>
+                </div>
             </div>
         </div>
     </form>
@@ -129,14 +136,9 @@
     <section class="mt-8">
         <h2 class="text-white text-xl font-bold mb-4 flex items-center gap-2">
             <span class="material-symbols-outlined">science</span>
-            Test Output
+            <span>Test Output</span>
         </h2>
-        <div id="testResult" class="card min-h-[200px]">
-            <div class="flex flex-col items-center justify-center py-8 text-zinc-400">
-                <span class="material-symbols-outlined text-5xl mb-2">terminal</span>
-                <p>Run a test to preview structured data and processed HTML.</p>
-            </div>
-        </div>
+        <div th:replace="~{fragments/recipe-test-result :: test-result(structured=${structured}, processedHtml=${processedHtml}, processedMarkdown=${processedMarkdown}, progressSteps=${progressSteps})}"></div>
     </section>
 </main>
 </html>

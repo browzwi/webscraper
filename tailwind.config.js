@@ -29,7 +29,7 @@ module.exports = {
         // Background colors
         background: {
           light: '#f6f6f8',
-          dark: '#161121',
+          dark: '#18161b',
         },
       },
       fontFamily: {
