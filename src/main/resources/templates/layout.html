@@ -93,6 +93,92 @@
             notify(button, 'Copied!');
         });
     };
+
+    function toggleModal(modalId, action) {
+        const modal = document.getElementById(modalId);
+        if (!modal || !modal.hasAttribute('data-modal-root')) {
+            return;
+        }
+        const shouldOpen = action === 'open';
+        modal.classList.toggle('hidden', !shouldOpen);
+        modal.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+    }
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-modal-action]');
+        if (!trigger) {
+            return;
+        }
+        const modalId = trigger.getAttribute('data-modal-target');
+        const action = trigger.getAttribute('data-modal-action');
+        if (!modalId || !action) {
+            return;
+        }
+        event.preventDefault();
+        toggleModal(modalId, action);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+        document.querySelectorAll('[data-modal-root][aria-hidden="false"]').forEach(modal => {
+            toggleModal(modal.id, 'close');
+        });
+    });
+
+    function bindTabButtons(scope) {
+        const root = scope && typeof scope.querySelectorAll === 'function' ? scope : document;
+        root.querySelectorAll('[data-tab-target]').forEach(button => {
+            if (button.dataset.tabBound === 'true') {
+                return;
+            }
+            button.dataset.tabBound = 'true';
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                const group = button.closest('[data-tab-group]');
+                if (!group) {
+                    return;
+                }
+                const targetId = button.dataset.tabTarget;
+                if (!targetId) {
+                    return;
+                }
+                group.querySelectorAll('[data-tab-target]').forEach(btn => btn.setAttribute('data-active', 'false'));
+                button.setAttribute('data-active', 'true');
+                group.querySelectorAll('.tab-content').forEach(panel => {
+                    panel.classList.add('hidden');
+                    panel.classList.remove('active');
+                });
+                const target = group.querySelector(`#${targetId}`);
+                if (target) {
+                    target.classList.remove('hidden');
+                    target.classList.add('active');
+                }
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        bindTabButtons();
+    });
+
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        const swapped = event.target;
+        if (!swapped) {
+            return;
+        }
+        if (swapped.id === 'testResult') {
+            bindTabButtons(swapped);
+            return;
+        }
+        if (typeof swapped.querySelector === 'function') {
+            const nestedResult = swapped.querySelector('#testResult');
+            if (nestedResult) {
+                bindTabButtons(nestedResult);
+            }
+        }
+    });
 </script>
 </body>
 </html>

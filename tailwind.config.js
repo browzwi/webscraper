@@ -33,8 +33,8 @@ module.exports = {
         },
       },
       fontFamily: {
-        display: ['Inter', 'sans-serif'],
-        mono: ['Source Code Pro', 'monospace'],
+        display: ['Syne', 'Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Source Code Pro', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         DEFAULT: '0.125rem',

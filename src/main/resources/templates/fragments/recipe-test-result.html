@@ -1,7 +1,3 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body>
-<!-- Fragment for recipe test results -->
 <div th:fragment="test-result(structured, processedHtml, processedMarkdown, progressSteps)"
      id="testResult"
      class="space-y-4">
@@ -33,76 +29,97 @@
             </div>
         </div>
 
-        <!-- Extracted Data -->
-        <div class="card">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-white font-bold flex items-center gap-2">
-                    <span class="material-symbols-outlined">data_object</span>
-                    <span>Extracted Data</span>
-                </h3>
-                <button type="button"
-                        class="btn btn-secondary text-xs"
-                        th:attr="onclick='copyText(this, `\' + ${structured} + \'`)'">
-                    <span class="material-symbols-outlined text-sm">content_copy</span>
-                    <span>Copy JSON</span>
-                </button>
+        <!-- Tab Navigation -->
+        <div class="card" data-tab-group>
+            <div class="border-b border-zinc-800 flex">
+                <button class="tab-button px-4 py-3 text-sm font-medium text-zinc-400 hover:text-white data-[active='true']:text-white data-[active='true']:border-b-2 data-[active='true']:border-primary"
+                        type="button"
+                        data-active="true"
+                        data-tab-target="tab-structured">Extracted Data</button>
+                <button class="tab-button px-4 py-3 text-sm font-medium text-zinc-400 hover:text-white data-[active='false']:text-white data-[active='false']:border-b-2 data-[active='false']:border-primary"
+                        type="button"
+                        data-active="false"
+                        data-tab-target="tab-html">Processed HTML</button>
+                <button class="tab-button px-4 py-3 text-sm font-medium text-zinc-400 hover:text-white data-[active='false']:text-white data-[active='false']:border-b-2 data-[active='false']:border-primary"
+                        type="button"
+                        data-active="false"
+                        data-tab-target="tab-markdown"
+                        th:if="${processedMarkdown != null and #strings.length(processedMarkdown) > 0}">Markdown</button>
+                <button class="tab-button px-4 py-3 text-sm font-medium text-zinc-400 hover:text-white data-[active='false']:text-white data-[active='false']:border-b-2 data-[active='false']:border-primary"
+                        type="button"
+                        data-active="false"
+                        data-tab-target="tab-steps"
+                        th:if="${progressSteps}">Processing Steps</button>
             </div>
-            <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
-                 th:text="${structured}"></pre>
-        </div>
 
-        <!-- Processed HTML -->
-        <div class="card">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-white font-bold flex items-center gap-2">
-                    <span class="material-symbols-outlined">code</span>
-                    <span>Processed HTML</span>
-                </h3>
-                <button type="button"
-                        class="btn btn-secondary text-xs"
-                        th:attr="onclick='copyText(this, `\' + ${processedHtml} + \'`)'">
-                    <span class="material-symbols-outlined text-sm">content_copy</span>
-                    <span>Copy HTML</span>
-                </button>
+            <!-- Tab Content -->
+            <div id="test-result-content" class="p-4">
+                <!-- Default to Structured Data tab -->
+                <div id="tab-structured" class="tab-content active">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-white font-bold flex items-center gap-2">
+                            <span class="material-symbols-outlined">data_object</span>
+                            <span>Extracted Data</span>
+                        </h3>
+                        <button type="button"
+                                class="btn btn-secondary text-xs"
+                                th:attr="onclick='copyText(this, `\' + ${structured} + \'`)'">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span>Copy JSON</span>
+                        </button>
+                    </div>
+                    <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                         th:text="${structured}"></pre>
+                </div>
+                
+                <div id="tab-html" class="tab-content hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-white font-bold flex items-center gap-2">
+                            <span class="material-symbols-outlined">code</span>
+                            <span>Processed HTML</span>
+                        </h3>
+                        <button type="button"
+                                class="btn btn-secondary text-xs"
+                                th:attr="onclick='copyText(this, `\' + ${processedHtml} + \'`)'">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span>Copy HTML</span>
+                        </button>
+                    </div>
+                    <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                         th:text="${processedHtml}"></pre>
+                </div>
+                
+                <div id="tab-markdown" class="tab-content hidden" th:if="${processedMarkdown != null and #strings.length(processedMarkdown) > 0}">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-white font-bold flex items-center gap-2">
+                            <span class="material-symbols-outlined">article</span>
+                            <span>Markdown</span>
+                        </h3>
+                        <button type="button"
+                                class="btn btn-secondary text-xs"
+                                th:attr="onclick='copyText(this, `\' + ${processedMarkdown} + \'`)'">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span>Copy Markdown</span>
+                        </button>
+                    </div>
+                    <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                         th:text="${processedMarkdown}"></pre>
+                </div>
+                
+                <div id="tab-steps" class="tab-content hidden" th:if="${progressSteps}">
+                    <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined">list</span>
+                        <span>Processing Steps</span>
+                    </h3>
+                    <ol class="space-y-2 text-sm text-zinc-300 bg-zinc-900/30 p-4 rounded-lg">
+                        <li th:each="step, iterStat : ${progressSteps}"
+                            class="flex items-start gap-2 py-2 border-b border-zinc-800/50 last:border-0">
+                            <span class="text-primary font-mono flex-shrink-0" th:text="${iterStat.count} + '.'"></span>
+                            <span class="flex-1" th:text="${step}"></span>
+                        </li>
+                    </ol>
+                </div>
             </div>
-            <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-64 scrollbar-dark font-mono text-xs"
-                 th:text="${processedHtml}"></pre>
-        </div>
-
-        <!-- Markdown Output -->
-        <div class="card"
-             th:if="${processedMarkdown != null and #strings.length(processedMarkdown) > 0}">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-white font-bold flex items-center gap-2">
-                    <span class="material-symbols-outlined">article</span>
-                    <span>Markdown</span>
-                </h3>
-                <button type="button"
-                        class="btn btn-secondary text-xs"
-                        th:attr="onclick='copyText(this, `\' + ${processedMarkdown} + \'`)'">
-                    <span class="material-symbols-outlined text-sm">content_copy</span>
-                    <span>Copy Markdown</span>
-                </button>
-            </div>
-            <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-64 scrollbar-dark font-mono text-xs"
-                 th:text="${processedMarkdown}"></pre>
-        </div>
-
-        <!-- Processing Steps -->
-        <div class="card" th:if="${progressSteps}">
-            <h3 class="text-white font-bold mb-3 flex items-center gap-2">
-                <span class="material-symbols-outlined">list</span>
-                <span>Processing Steps</span>
-            </h3>
-            <ol class="space-y-2 text-sm text-zinc-300 bg-zinc-900/30 p-4 rounded-lg">
-                <li th:each="step, iterStat : ${progressSteps}"
-                    class="flex items-start gap-2 py-2 border-b border-zinc-800/50 last:border-0">
-                    <span class="text-primary font-mono flex-shrink-0" th:text="${iterStat.count} + '.'"></span>
-                    <span class="flex-1" th:text="${step}"></span>
-                </li>
-            </ol>
         </div>
     </div>
 </div>
-</body>
-</html>

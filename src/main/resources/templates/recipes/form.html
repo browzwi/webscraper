@@ -54,7 +54,7 @@
         </div>
 
         <!-- Example Recipes Section -->
-        <section class="rounded-xl border border-zinc-800 bg-zinc-900/30 p-6 space-y-4">
+        <section class="card">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
                     <h2 class="text-white text-base font-bold flex items-center gap-2">
@@ -74,32 +74,16 @@
                     </span>
                 </div>
             </div>
-            <div class="grid gap-4 md:grid-cols-3">
-                <div th:each="example : ${recipeExamples}"
-                     class="bg-zinc-900/50 rounded-xl border border-zinc-800 p-4 flex flex-col hover:border-zinc-700 transition-colors">
-                    <div>
-                        <p class="text-sm font-semibold text-white" th:text="${example.title}"></p>
-                        <p class="text-xs text-zinc-400 mt-1" th:text="${example.description}"></p>
-                    </div>
-                    <pre class="mt-3 text-xs bg-black/50 text-zinc-300 rounded-lg p-3 overflow-auto flex-1 font-mono scrollbar-dark"
-                         th:text="${example.yaml}"></pre>
-                    <div class="mt-3 flex items-center gap-2">
-                        <button type="button"
-                                class="flex-1 btn btn-primary text-xs py-2"
-                                th:attr="data-yaml=${example.yaml}"
-                                onclick="insertYaml(this)">
-                            <span class="material-symbols-outlined text-sm">download</span>
-                            <span>Use</span>
-                        </button>
-                        <button type="button"
-                                class="flex-1 btn btn-secondary text-xs py-2"
-                                th:attr="data-yaml=${example.yaml}"
-                                onclick="copyYaml(this)">
-                            <span class="material-symbols-outlined text-sm">content_copy</span>
-                            <span>Copy</span>
-                        </button>
-                    </div>
-                </div>
+            
+            <!-- Compact Trigger Button -->
+            <div class="mt-4 flex justify-center">
+                <button type="button" 
+                        class="btn btn-secondary"
+                        data-modal-target="example-recipes-modal"
+                        data-modal-action="open">
+                    <span class="material-symbols-outlined">visibility</span>
+                    <span>Browse Examples</span>
+                </button>
             </div>
         </section>
 
@@ -140,5 +124,8 @@
         </h2>
         <div th:replace="~{fragments/recipe-test-result :: test-result(structured=${structured}, processedHtml=${processedHtml}, processedMarkdown=${processedMarkdown}, progressSteps=${progressSteps})}"></div>
     </section>
+
+    <!-- Example Recipes Modal -->
+    <th:block th:insert="~{fragments/example-recipes-modal :: example-recipes-modal(${recipeExamples})}"></th:block>
 </main>
 </html>
