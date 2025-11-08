@@ -35,8 +35,10 @@ class ScraperEngineTest {
 
         assertThat(result.rawHtml()).contains("<h1");
         assertThat(result.processedHtml()).doesNotContain("<script");
+        assertThat(result.processedMarkdown()).contains("Title");
         assertThat(result.structuredData()).containsEntry("title", "Title");
         assertThat(result.hrefs()).containsExactly("/foo");
+        assertThat(result.progressSteps()).isNotEmpty();
     }
 
     private RecipeConfig buildRecipe() {

@@ -7,6 +7,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.LoadState;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,14 +40,21 @@ public class PlaywrightFetcher implements PageFetcher {
     @Override
     public String fetch(String url) {
         try (Playwright playwright = Playwright.create();
-             Browser browserInstance = selectBrowser(playwright);
-             BrowserContext context = browserInstance.newContext(new Browser.NewContextOptions().setIgnoreHTTPSErrors(true));
-             Page page = context.newPage()) {
+             Browser browserInstance = selectBrowser(playwright)) {
 
-            page.setDefaultTimeout(timeoutMillis);
-            page.navigate(url, new Page.NavigateOptions().setTimeout((double) timeoutMillis));
-            page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout((double) timeoutMillis));
-            return page.content();
+            Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
+                    .setIgnoreHTTPSErrors(true)
+                    .setLocale("en-US")
+                    .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
+            try (BrowserContext context = browserInstance.newContext(contextOptions)) {
+                context.setExtraHTTPHeaders(Map.of("Accept-Language", "en-US,en;q=0.9"));
+                try (Page page = context.newPage()) {
+                    page.setDefaultTimeout(timeoutMillis);
+                    page.navigate(url, new Page.NavigateOptions().setTimeout((double) timeoutMillis));
+                    page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout((double) timeoutMillis));
+                    return page.content();
+                }
+            }
         } catch (PlaywrightException e) {
             throw new RuntimeException("Playwright fetch failed for " + url, e);
         }

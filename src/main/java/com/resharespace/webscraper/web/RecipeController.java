@@ -212,11 +212,13 @@ public class RecipeController {
             model.addAttribute("processedHtml", result.processedHtml());
             model.addAttribute("processedMarkdown", result.processedMarkdown());
             model.addAttribute("rawHtml", result.rawHtml());
+            model.addAttribute("progressSteps", result.progressSteps());
         } catch (Exception e) {
             model.addAttribute("structured", "Test failed: " + e.getMessage());
             model.addAttribute("processedHtml", "");
             model.addAttribute("processedMarkdown", "");
             model.addAttribute("rawHtml", "");
+            model.addAttribute("progressSteps", List.of("Failed: " + e.getMessage()));
         }
         return "recipes/test-result :: result";
     }
