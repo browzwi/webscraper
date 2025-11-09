@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -33,6 +35,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @PreAuthorize("hasRole('ADMIN')")
 @RequestMapping("/recipes")
 public class RecipeController {
+
+    private static final Logger log = LoggerFactory.getLogger(RecipeController.class);
 
     private final ScraperRecipeService recipeService;
     private final ScraperRecipeRepository recipeRepository;
@@ -250,8 +254,15 @@ public class RecipeController {
         
         switch (session.getStatus()) {
             case COMPLETED -> {
+                log.info("Session completed - isMultiPage: {}", session.isMultiPage());
+                log.debug("Session completed - multiPageResult: {}, result: {}", 
+                         session.getMultiPageResult() != null, session.getResult() != null);
                 if (session.isMultiPage()) {
                     var multiResult = session.getMultiPageResult();
+                    log.info("Multi-page result: {}, pageResults count: {}", 
+                        multiResult != null, 
+                        multiResult != null ? multiResult.pageResults().size() : 0);
+                    
                     model.addAttribute("structured", objectMapper.writerWithDefaultPrettyPrinter()
                             .writeValueAsString(multiResult.combinedStructuredData()));
                     model.addAttribute("progressSteps", multiResult.progressSteps());
@@ -272,6 +283,7 @@ public class RecipeController {
                     }
                 } else {
                     var result = session.getResult();
+                    log.info("Single-page result: {}", result != null);
                     model.addAttribute("structured", objectMapper.writerWithDefaultPrettyPrinter()
                             .writeValueAsString(result.structuredData()));
                     model.addAttribute("processedHtml", result.processedHtml());
@@ -300,7 +312,7 @@ public class RecipeController {
             }
             default -> throw new ResponseStatusException(HttpStatus.ACCEPTED, "Session still running");
         }
-        return "fragments/recipe-test-result :: test-result";
+        return "recipes/test-result :: result";
     }
 
     public record TestSessionResponse(UUID sessionId) {

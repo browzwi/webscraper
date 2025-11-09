@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="result">
+<div th:fragment="result" id="testResult" th:attr="data-session-id=${sessionId}, data-is-multi-page=${isMultiPage}">
     <div th:if="${progressSteps}" class="mb-4 bg-white rounded-xl shadow p-4">
         <h3 class="text-sm font-semibold text-slate-700 mb-2">Progress</h3>
         <ol class="space-y-2">
@@ -24,14 +24,20 @@
                     <!-- Page selector dropdown for multi-page results -->
                     <div th:if="${isMultiPage}" class="relative">
                         <select class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs border border-slate-300"
-                                onchange="switchPage(this.value)"
-                                th:attr="data-session-id=${sessionId}">
+                                hx-get="${#httpServletRequest.requestURI}"
+                                hx-params="*"
+                                hx-push-url="false"
+                                hx-target="closest div[data-session-id]"
+                                hx-indicator=".htmx-indicator">
                             <option th:each="pageEntry : ${pageResults}" 
                                     th:value="${pageEntry.key}" 
                                     th:text="${pageEntry.key == 'main' ? 'Main Page' : pageEntry.key}"
                                     th:selected="${pageEntry.key == selectedPage}">
                             </option>
                         </select>
+                        <div class="htmx-indicator">
+                            <span class="loading loading-spinner loading-xs"></span>
+                        </div>
                     </div>
                     <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700"
                             onclick="copyFromElement(this, '#testProcessedHtml')">Copy</button>
@@ -51,8 +57,28 @@
         <div>
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-slate-700">Processed Markdown</h3>
-                <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700"
-                        onclick="copyFromElement(this, '#testProcessedMarkdown')">Copy</button>
+                <div class="flex items-center space-x-2 text-xs">
+                    <!-- Page selector dropdown for multi-page results -->
+                    <div th:if="${isMultiPage}" class="relative">
+                        <select class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs border border-slate-300"
+                                hx-get="${#httpServletRequest.requestURI}"
+                                hx-params="*"
+                                hx-push-url="false"
+                                hx-target="closest div[data-session-id]"
+                                hx-indicator=".htmx-indicator">
+                            <option th:each="pageEntry : ${pageResults}" 
+                                    th:value="${pageEntry.key}" 
+                                    th:text="${pageEntry.key == 'main' ? 'Main Page' : pageEntry.key}"
+                                    th:selected="${pageEntry.key == selectedPage}">
+                            </option>
+                        </select>
+                        <div class="htmx-indicator">
+                            <span class="loading loading-spinner loading-xs"></span>
+                        </div>
+                    </div>
+                    <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700"
+                            onclick="copyFromElement(this, '#testProcessedMarkdown')">Copy</button>
+                </div>
             </div>
             <pre id="testProcessedMarkdown" class="mt-2 bg-slate-900 text-amber-100 text-xs rounded-lg p-3 overflow-auto max-h-80" th:text="${processedMarkdown}"></pre>
         </div>
@@ -63,15 +89,8 @@
     </details>
 
     <script th:if="${isMultiPage}">
-        function switchPage(pageKey) {
-            const sessionId = document.querySelector('select[data-session-id]').getAttribute('data-session-id');
-            const url = `/recipes/test/${sessionId}/result?page=${encodeURIComponent(pageKey)}`;
-            
-            htmx.ajax('GET', url, {
-                target: '#testResultContainer',
-                swap: 'innerHTML'
-            });
-        }
+        // HTMX-based page switching is now handled directly through HTMX attributes
+        // No JavaScript needed for page switching
     </script>
 </div>
 </body>

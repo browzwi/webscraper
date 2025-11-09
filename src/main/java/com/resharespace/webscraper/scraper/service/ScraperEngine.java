@@ -137,7 +137,14 @@ public class ScraperEngine {
             listener.onStepStarted(currentStep);
             progress.add(currentStep);
             
-            ScrapeExecutionResult mainResult = execute(recipe, seedUrl, overrides, listener);
+            ScrapeExecutionResult mainResult;
+            try {
+                mainResult = execute(recipe, seedUrl, overrides, listener);
+            } catch (Exception e) {
+                log.error("[ScraperEngine] Failed to scrape main page: {}", seedUrl, e);
+                throw new ScrapeException("Failed to scrape main page: " + e.getMessage(), e);
+            }
+            
             pageResults.put("main", new MultiPageScrapeResult.PageResult(
                 seedUrl, mainResult.rawHtml(), mainResult.processedHtml(), 
                 mainResult.processedMarkdown(), mainResult.structuredData(), mainResult.hrefs()
@@ -176,10 +183,12 @@ public class ScraperEngine {
             
             return new MultiPageScrapeResult(combinedData, pageResults, progress);
             
+        } catch (ScrapeException ex) {
+            throw ex; // Re-throw ScrapeException as-is
         } catch (Exception ex) {
             progress.add("Failed: " + ex.getMessage());
             log.error("[ScraperEngine] Multi-page scrape failed for {}", seedUrl, ex);
-            throw new ScrapeException("Failed to execute multi-page scraper", ex);
+            throw new ScrapeException("Failed to execute multi-page scraper: " + ex.getMessage(), ex);
         }
     }
 

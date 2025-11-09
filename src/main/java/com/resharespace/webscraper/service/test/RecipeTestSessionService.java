@@ -2,6 +2,7 @@ package com.browzwi.webscraper.service.test;
 
 import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
+import com.browzwi.webscraper.scraper.model.SubPageConfig;
 import com.browzwi.webscraper.scraper.service.MultiPageScrapeResult;
 import com.browzwi.webscraper.scraper.service.ScraperEngine;
 import com.browzwi.webscraper.service.ScraperRecipeService;
@@ -57,12 +58,25 @@ public class RecipeTestSessionService {
             ScraperEngine.ProgressListener listener = new SessionProgressListener(session);
             
             // Check if recipe has sub-pages configured for multi-page scraping
-            if (config.getPage().getSubPages() != null && !config.getPage().getSubPages().isEmpty()) {
+            boolean hasSubPages = config.getPage().getSubPages() != null && !config.getPage().getSubPages().isEmpty();
+            log.debug("[RecipeTestSession] Session {}: Recipe has sub-pages: {} (count: {})", 
+                     session.getId(), hasSubPages, 
+                     config.getPage().getSubPages() != null ? config.getPage().getSubPages().size() : 0);
+            
+            if (hasSubPages) {
+                // Add sub-page steps dynamically
+                for (SubPageConfig subPage : config.getPage().getSubPages()) {
+                    String subPageUrl = url + (subPage.getPath().startsWith("/") ? subPage.getPath() : "/" + subPage.getPath());
+                    session.addStep("Starting scrape for " + subPageUrl);
+                }
+                
                 MultiPageScrapeResult result = scraperEngine.executeMultiPage(config, url, overrides, listener);
                 session.markCompletedMultiPage(result);
+                log.debug("[RecipeTestSession] Session {}: Marked as multi-page completed", session.getId());
             } else {
                 var result = scraperEngine.execute(config, url, overrides, listener);
                 session.markCompleted(result);
+                log.debug("[RecipeTestSession] Session {}: Marked as single-page completed", session.getId());
             }
             
             log.info("[RecipeTestSession] Session {} completed", session.getId());

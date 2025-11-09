@@ -123,14 +123,20 @@
                             <!-- Page selector for multi-page results -->
                             <div th:if="${isMultiPage}" class="relative">
                                 <select class="px-3 py-1.5 rounded-lg bg-zinc-800 text-white text-xs border border-zinc-600"
-                                        onchange="switchTestResultPage(this.value)"
-                                        th:attr="data-session-id=${sessionId}">
+                                        hx-get="${#httpServletRequest.requestURI}"
+                                        hx-params="*"
+                                        hx-push-url="false"
+                                        hx-target="closest div[data-session-id]"
+                                        hx-indicator=".htmx-indicator">
                                     <option th:each="pageEntry : ${pageResults}" 
                                             th:value="${pageEntry.key}" 
                                             th:text="${pageEntry.key == 'main' ? 'Main Page' : pageEntry.key}"
                                             th:selected="${pageEntry.key == selectedPage}">
                                     </option>
                                 </select>
+                                <div class="htmx-indicator">
+                                    <span class="loading loading-spinner loading-xs"></span>
+                                </div>
                             </div>
                             <button type="button"
                                     class="btn btn-secondary text-xs"
@@ -154,14 +160,20 @@
                             <!-- Page selector for multi-page results -->
                             <div th:if="${isMultiPage}" class="relative">
                                 <select class="px-3 py-1.5 rounded-lg bg-zinc-800 text-white text-xs border border-zinc-600"
-                                        onchange="switchTestResultPage(this.value)"
-                                        th:attr="data-session-id=${sessionId}">
+                                        hx-get="${#httpServletRequest.requestURI}"
+                                        hx-params="*"
+                                        hx-push-url="false"
+                                        hx-target="closest div[data-session-id]"
+                                        hx-indicator=".htmx-indicator">
                                     <option th:each="pageEntry : ${pageResults}" 
                                             th:value="${pageEntry.key}" 
                                             th:text="${pageEntry.key == 'main' ? 'Main Page' : pageEntry.key}"
                                             th:selected="${pageEntry.key == selectedPage}">
                                     </option>
                                 </select>
+                                <div class="htmx-indicator">
+                                    <span class="loading loading-spinner loading-xs"></span>
+                                </div>
                             </div>
                             <button type="button"
                                     class="btn btn-secondary text-xs"
@@ -194,31 +206,8 @@
     </th:block>
 </div>
 
-<script th:if="${isMultiPage}">
-    function switchTestResultPage(pageKey) {
-        const sessionId = document.querySelector('[data-session-id]').getAttribute('data-session-id');
-        if (!sessionId) return;
-        
-        const url = `/recipes/test/${sessionId}/result?page=${encodeURIComponent(pageKey)}`;
-        
-        fetch(url, {
-            headers: { 'HX-Request': 'true' }
-        })
-        .then(response => response.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const replacement = doc.querySelector('#testResult');
-            const target = document.getElementById('testResult');
-            if (replacement && target) {
-                target.replaceWith(replacement);
-                if (typeof bindTabButtons === 'function') {
-                    bindTabButtons(replacement);
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Failed to switch page:', error);
-        });
-    }
-</script>
+
+</div>
+</body>
+</html>
+

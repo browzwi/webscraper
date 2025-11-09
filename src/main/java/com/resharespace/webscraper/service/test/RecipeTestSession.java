@@ -30,12 +30,21 @@ public class RecipeTestSession {
         this.id = Objects.requireNonNull(id, "id");
         this.url = Objects.requireNonNull(url, "url");
         this.createdAt = Instant.now();
-        this.steps = new ArrayList<>(List.of(
+        this.steps = new ArrayList<>();
+        initializeDefaultSteps();
+    }
+
+    private void initializeDefaultSteps() {
+        steps.addAll(List.of(
                 new TestStep("Starting scrape for " + url),
                 new TestStep("Fetched raw HTML"),
                 new TestStep("Processed DOM and collected hrefs"),
                 new TestStep("Extracted structured data"),
                 new TestStep("Converted processed HTML to Markdown")));
+    }
+
+    public synchronized void addStep(String stepLabel) {
+        steps.add(new TestStep(stepLabel));
     }
 
     public UUID getId() {
