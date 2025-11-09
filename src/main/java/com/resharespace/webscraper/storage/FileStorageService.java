@@ -18,11 +18,11 @@ public class FileStorageService {
     }
 
     public Path resolveJobDir(UUID jobId) {
-        return ensureDirectory(root.resolve(jobId.toString()));
+        return ensureDirectory(jobDirPath(jobId));
     }
 
     public Path resolveTargetDir(UUID jobId, UUID targetId) {
-        return ensureDirectory(resolveJobDir(jobId).resolve(targetId.toString()));
+        return ensureDirectory(targetDirPath(jobId, targetId));
     }
 
     public Path storeRawHtml(UUID jobId, UUID targetId, String html) {
@@ -39,6 +39,22 @@ public class FileStorageService {
 
     public String loadProcessedHtml(UUID jobId, UUID targetId) {
         return readFile(resolveTargetDir(jobId, targetId).resolve("processed.html"));
+    }
+
+    public boolean existsRawHtml(UUID jobId, UUID targetId) {
+        return Files.exists(targetDirPath(jobId, targetId).resolve("raw.html"));
+    }
+
+    public boolean existsProcessedHtml(UUID jobId, UUID targetId) {
+        return Files.exists(targetDirPath(jobId, targetId).resolve("processed.html"));
+    }
+
+    private Path jobDirPath(UUID jobId) {
+        return root.resolve(jobId.toString());
+    }
+
+    private Path targetDirPath(UUID jobId, UUID targetId) {
+        return jobDirPath(jobId).resolve(targetId.toString());
     }
 
     private Path ensureDirectory(Path directory) {

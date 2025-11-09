@@ -15,6 +15,7 @@ import com.browzwi.webscraper.repository.ScraperRecipeRepository;
 import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -102,6 +103,10 @@ public class ScrapeJobService {
 
     public Optional<ScrapeResultData> findResult(UUID targetId) {
         return resultDataRepository.findByTargetId(targetId);
+    }
+
+    public Optional<Instant> findNextRun(UUID jobId) {
+        return schedulerService.findNextFireTime(jobId);
     }
 
     public void runJobNow(UUID jobId) {

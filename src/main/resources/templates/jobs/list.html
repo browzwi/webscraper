@@ -35,9 +35,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="job : ${jobs}">
+                    <tr th:each="job : ${jobRows}">
                         <td class="text-white font-medium" th:text="${job.name}"></td>
-                        <td class="text-white/70" th:text="${job.recipe.name}"></td>
+                        <td class="text-white/70" th:text="${job.recipeName}"></td>
                         <td>
                             <span th:if="${job.status.name() == 'COMPLETED'}"
                                   class="badge badge-success">
@@ -60,8 +60,13 @@
                                 <span th:text="${job.status}"></span>
                             </span>
                         </td>
-                        <td class="text-white/70" th:text="${job.scheduleCron} ?: 'One-time'"></td>
-                        <td class="text-white/70" th:text="${job.updatedAt != null ? #temporals.format(job.updatedAt, 'yyyy-MM-dd HH:mm:ss') : 'N/A'}"></td>
+                        <td class="text-white/70">
+                            <div th:text="${job.scheduleLabel}"></div>
+                            <div th:if="${job.countdownLabel != null}"
+                                 class="text-xs text-primary mt-1"
+                                 th:text="${job.countdownLabel}"></div>
+                        </td>
+                        <td class="text-white/70" th:text="${job.lastRunLabel}"></td>
                         <td>
                             <div class="flex items-center justify-end gap-2">
                                 <button class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -86,7 +91,7 @@
                             </div>
                         </td>
                     </tr>
-                    <tr th:if="${jobs.isEmpty()}">
+                    <tr th:if="${jobRows.isEmpty()}">
                         <td colspan="6" class="text-center text-white/50 py-8">
                             <div class="flex flex-col items-center gap-2">
                                 <span class="material-symbols-outlined text-4xl">schedule</span>

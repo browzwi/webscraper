@@ -4,10 +4,10 @@
     <!-- Page Header -->
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-            <h1 class="text-white text-md md:text-lg font-black leading-tight tracking-tight" th:text="${job.name}"></h1>
+            <h1 class="text-white text-md md:text-lg font-black leading-tight tracking-tight" th:text="${jobDetail.name}"></h1>
             <p class="text-zinc-400 text-base mt-1 flex items-center gap-2">
                 <span class="material-symbols-outlined text-sm">receipt_long</span>
-                Recipe: <span class="text-primary" th:text="${job.recipe.name}"></span>
+                Recipe: <span class="text-primary" th:text="${jobDetail.recipeName}"></span>
             </p>
         </div>
         <a th:href="@{/jobs}" class="flex items-center gap-1 text-sm text-primary hover:text-primary-400">
@@ -23,21 +23,24 @@
                 <span class="material-symbols-outlined text-zinc-400">info</span>
                 <p class="text-xs text-zinc-400 uppercase tracking-wider">Status</p>
             </div>
-            <p class="text-2xl font-bold text-white" th:text="${job.status}"></p>
+            <p class="text-2xl font-bold text-white" th:text="${jobDetail.status}"></p>
         </div>
         <div class="card">
             <div class="flex items-center gap-3 mb-2">
                 <span class="material-symbols-outlined text-zinc-400">schedule</span>
                 <p class="text-xs text-zinc-400 uppercase tracking-wider">Schedule</p>
             </div>
-            <p class="text-2xl font-bold text-white" th:text="${job.scheduleCron} ?: 'One-time'"></p>
+            <p class="text-2xl font-bold text-white" th:text="${jobDetail.scheduleLabel}"></p>
+            <p th:if="${jobDetail.countdownLabel != null}"
+               class="text-sm text-primary mt-1"
+               th:text="${jobDetail.countdownLabel}"></p>
         </div>
         <div class="card">
             <div class="flex items-center gap-3 mb-2">
                 <span class="material-symbols-outlined text-zinc-400">person</span>
                 <p class="text-xs text-zinc-400 uppercase tracking-wider">Requested By</p>
             </div>
-            <p class="text-2xl font-bold text-white" th:text="${job.requestedBy}"></p>
+            <p class="text-2xl font-bold text-white" th:text="${jobDetail.requestedBy}"></p>
         </div>
     </section>
 
@@ -62,7 +65,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="target : ${targets}">
+                    <tr th:each="target : ${jobDetail.targets}">
                         <td class="text-white font-mono text-xs max-w-md truncate" th:text="${target.url}" th:title="${target.url}"></td>
                         <td>
                             <span th:if="${target.status.name() == 'COMPLETED'}" class="badge badge-success">
@@ -82,29 +85,33 @@
                                 <span th:text="${'PENDING'}"></span>
                             </span>
                         </td>
-                        <td class="text-white/70 text-xs" th:text="${target.startedAt != null ? #temporals.format(target.startedAt, 'yyyy-MM-dd HH:mm:ss') : '-'}"></td>
-                        <td class="text-white/70 text-xs" th:text="${target.finishedAt != null ? #temporals.format(target.finishedAt, 'yyyy-MM-dd HH:mm:ss') : '-'}"></td>
-                        <td class="text-red-400 text-xs max-w-xs truncate" th:text="${target.errorMessage}" th:title="${target.errorMessage}"></td>
+                        <td class="text-white/70 text-xs" th:text="${target.startedAtLabel}"></td>
+                        <td class="text-white/70 text-xs" th:text="${target.finishedAtLabel}"></td>
+                        <td class="text-red-400 text-xs max-w-xs truncate"
+                            th:text="${target.errorMessage}"
+                            th:title="${target.errorMessage}"
+                            th:classappend="${!target.hasError()} ? ' text-white/40' : ''"></td>
                         <td class="text-right">
                             <div class="flex items-center justify-end gap-2">
                                 <button class="btn btn-ghost text-xs px-3 py-1"
-                                        th:attr="hx-get=@{'/jobs/' + ${job.id} + '/targets/' + ${target.id}},
+                                        th:attr="hx-get=@{'/jobs/' + ${jobDetail.id} + '/targets/' + ${target.id}},
                                                  hx-target='#targetDetails',
                                                  hx-swap='innerHTML'">
                                     <span class="material-symbols-outlined text-sm">visibility</span>
-                                    <span>Results</span>
+                                    <span>View Data</span>
                                 </button>
                                 <button class="btn btn-ghost text-xs px-3 py-1"
-                                        th:attr="hx-get=@{'/jobs/' + ${job.id} + '/targets/' + ${target.id} + '?view=progress'},
-                                                 hx-target='#targetDetails',
+                                        hx-on::beforeRequest="window.showProgressModal()"
+                                        th:attr="hx-get=@{'/jobs/' + ${jobDetail.id} + '/targets/' + ${target.id} + '/status'},
+                                                 hx-target='#progressModalContent',
                                                  hx-swap='innerHTML'">
-                                    <span class="material-symbols-outlined text-sm">list</span>
+                                    <span class="material-symbols-outlined text-sm">speed</span>
                                     <span>Progress</span>
                                 </button>
                             </div>
                         </td>
                     </tr>
-                    <tr th:if="${targets.isEmpty()}">
+                    <tr th:if="${jobDetail.targets.isEmpty()}">
                         <td colspan="6" class="text-center text-white/50 py-8">
                             <div class="flex flex-col items-center gap-2">
                                 <span class="material-symbols-outlined text-4xl">inbox</span>
@@ -130,5 +137,17 @@
             </div>
         </div>
     </section>
+
+    <div id="progressModal" data-modal-root class="hidden fixed inset-0 z-50 flex items-center justify-center" aria-hidden="true">
+        <div class="absolute inset-0 bg-black/70" onclick="window.toggleModal('progressModal','close')"></div>
+        <div class="relative z-10 w-full max-w-3xl mx-auto px-4">
+            <div id="progressModalContent" class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl">
+                <div class="px-6 py-10 text-center text-zinc-400">
+                    <span class="material-symbols-outlined text-4xl">hourglass_empty</span>
+                    <p class="mt-3 text-sm">Fetching the latest progress updates…</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 </html>

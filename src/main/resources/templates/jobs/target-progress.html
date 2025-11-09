@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl">
+        <div class="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
+            <div>
+                <h2 class="text-white font-bold text-lg flex items-center gap-2">
+                    <span class="material-symbols-outlined">timeline</span>
+                    <span>Scrape Progress</span>
+                </h2>
+                <p class="text-xs text-zinc-500" th:text="${progress.url}"></p>
+            </div>
+            <button type="button"
+                    class="text-zinc-400 hover:text-white"
+                    onclick="window.toggleModal('progressModal','close')">
+                <span class="material-symbols-outlined text-xl">close</span>
+            </button>
+        </div>
+        <div class="px-6 py-5 space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="text-xs uppercase tracking-wider text-zinc-500">Status</p>
+                    <p class="text-white text-lg font-semibold mt-1" th:text="${progress.status}"></p>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="text-xs uppercase tracking-wider text-zinc-500">Started</p>
+                    <p class="text-white text-sm mt-1" th:text="${progress.startedAtLabel}"></p>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="text-xs uppercase tracking-wider text-zinc-500">Finished</p>
+                    <p class="text-white text-sm mt-1" th:text="${progress.finishedAtLabel}"></p>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="text-xs uppercase tracking-wider text-zinc-500">Duration</p>
+                    <p class="text-white text-sm mt-1" th:text="${progress.durationLabel}"></p>
+                </div>
+            </div>
+
+            <div th:if="${progress.hasGroups()}" class="space-y-4">
+                <div th:each="group : ${progress.groups}" class="border border-zinc-800 rounded-xl bg-zinc-900/60 p-5">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <div>
+                            <p class="text-white font-semibold" th:text="${group.title}"></p>
+                            <p class="text-xs text-zinc-500" th:if="${group.hasUrl()}" th:text="${group.url}"></p>
+                        </div>
+                    </div>
+                    <ol class="mt-4 space-y-3">
+                        <li th:each="step, iterStat : ${group.steps}" class="flex items-start gap-3">
+                            <span class="mt-1 inline-flex h-2 w-2 rounded-full bg-primary"></span>
+                            <span class="text-sm text-zinc-200" th:text="${step}"></span>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            <div th:unless="${progress.hasGroups()}" class="text-sm text-zinc-400 flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">info</span>
+                <span>No progress updates have been recorded yet.</span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

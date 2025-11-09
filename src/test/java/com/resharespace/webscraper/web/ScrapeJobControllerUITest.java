@@ -7,6 +7,7 @@ import com.browzwi.webscraper.domain.ScrapeTargetStatus;
 import com.browzwi.webscraper.repository.ScraperRecipeRepository;
 import com.browzwi.webscraper.scraper.service.MarkdownConversionService;
 import com.browzwi.webscraper.service.ScrapeJobService;
+import com.browzwi.webscraper.service.ScrapeTargetArchiveService;
 import com.browzwi.webscraper.service.ScraperRecipeService;
 import com.browzwi.webscraper.storage.FileStorageService;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -19,6 +20,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
@@ -47,6 +49,9 @@ class ScrapeJobControllerUITest {
     @MockBean
     private ScraperRecipeService recipeService;
 
+    @MockBean
+    private ScrapeTargetArchiveService archiveService;
+
     @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render jobs list page")
@@ -54,12 +59,13 @@ class ScrapeJobControllerUITest {
         // Given
         ScrapeJob job = createMockJob();
         when(jobService.listJobs()).thenReturn(List.of(job));
+        when(jobService.findNextRun(job.getId())).thenReturn(Optional.empty());
 
         // When & Then
         mockMvc.perform(get("/jobs"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("jobs/list"))
-                .andExpect(model().attributeExists("jobs"))
+                .andExpect(model().attributeExists("jobRows"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Scrape Jobs")));
     }
 
@@ -70,6 +76,7 @@ class ScrapeJobControllerUITest {
         // Given
         ScrapeJob job = createMockJob();
         when(jobService.listJobs()).thenReturn(List.of(job));
+        when(jobService.findNextRun(job.getId())).thenReturn(Optional.empty());
 
         // When & Then
         mockMvc.perform(get("/jobs"))
@@ -121,13 +128,13 @@ class ScrapeJobControllerUITest {
 
         when(jobService.getJob(jobId)).thenReturn(job);
         when(jobService.listTargets(jobId)).thenReturn(List.of(target));
+        when(jobService.findNextRun(job.getId())).thenReturn(Optional.empty());
 
         // When & Then
         mockMvc.perform(get("/jobs/" + jobId))
                 .andExpect(status().isOk())
                 .andExpect(view().name("jobs/detail"))
-                .andExpect(model().attributeExists("job"))
-                .andExpect(model().attributeExists("targets"))
+                .andExpect(model().attributeExists("jobDetail"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Scrape Targets")));
     }
 
@@ -143,6 +150,7 @@ class ScrapeJobControllerUITest {
 
         when(jobService.getJob(jobId)).thenReturn(job);
         when(jobService.listTargets(jobId)).thenReturn(List.of(target));
+        when(jobService.findNextRun(job.getId())).thenReturn(Optional.empty());
 
         // When & Then
         mockMvc.perform(get("/jobs/" + jobId))
@@ -161,6 +169,7 @@ class ScrapeJobControllerUITest {
 
         when(jobService.getJob(jobId)).thenReturn(job);
         when(jobService.listTargets(jobId)).thenReturn(List.of(target));
+        when(jobService.findNextRun(job.getId())).thenReturn(Optional.empty());
 
         // When & Then
         mockMvc.perform(get("/jobs/" + jobId))

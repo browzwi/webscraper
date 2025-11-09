@@ -2,6 +2,11 @@ package com.browzwi.webscraper.service;
 
 import com.browzwi.webscraper.domain.ScrapeJob;
 import com.browzwi.webscraper.service.job.ScrapeQuartzJob;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;
@@ -50,6 +55,23 @@ public class ScrapeJobSchedulerService {
             scheduler.triggerJob(key);
         } catch (SchedulerException e) {
             throw new SchedulingException("Failed to trigger job " + job.getId(), e);
+        }
+    }
+
+    public Optional<Instant> findNextFireTime(UUID jobId) {
+        JobKey key = JobKey.jobKey(jobKey(jobId));
+        try {
+            if (!scheduler.checkExists(key)) {
+                return Optional.empty();
+            }
+            List<? extends Trigger> triggers = scheduler.getTriggersOfJob(key);
+            return triggers.stream()
+                    .map(Trigger::getNextFireTime)
+                    .filter(date -> date != null)
+                    .map(Date::toInstant)
+                    .min(Comparator.naturalOrder());
+        } catch (SchedulerException e) {
+            throw new SchedulingException("Failed to determine next fire time for job " + jobId, e);
         }
     }
 
