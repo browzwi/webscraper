@@ -1,5 +1,6 @@
 package com.browzwi.webscraper.security;
 
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -27,7 +28,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/css/**", "/js/**", "/images/**", "/webjars/**", "/*.css", "/*.js").permitAll()
+                        .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
+                        .requestMatchers("/styles.css", "/login", "/css/**", "/js/**", "/images/**", "/webjars/**", "/*.css", "/*.js").permitAll()
                         .anyRequest().authenticated())
                 .userDetailsService(userDetailsService)
                 .formLogin(form -> form.loginPage("/login").permitAll())
