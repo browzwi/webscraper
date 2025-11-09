@@ -268,9 +268,13 @@ public class RecipeController {
                     model.addAttribute("progressSteps", multiResult.progressSteps());
                     model.addAttribute("isMultiPage", true);
                     model.addAttribute("pageResults", multiResult.pageResults());
-                    model.addAttribute("selectedPage", pageKey);
-                    
-                    // Get specific page result for display
+
+                    boolean hasMarkdown = multiResult.pageResults().values().stream()
+                        .anyMatch(pageResult -> pageResult.processedMarkdown() != null
+                            && !pageResult.processedMarkdown().isBlank());
+                    model.addAttribute("hasMarkdown", hasMarkdown);
+
+                    // Get specific page result for display (for legacy consumers)
                     var pageResult = multiResult.pageResults().get(pageKey);
                     if (pageResult != null) {
                         model.addAttribute("processedHtml", pageResult.processedHtml());
@@ -291,6 +295,10 @@ public class RecipeController {
                     model.addAttribute("rawHtml", result.rawHtml());
                     model.addAttribute("progressSteps", result.progressSteps());
                     model.addAttribute("isMultiPage", false);
+                    boolean hasMarkdown = result != null
+                        && result.processedMarkdown() != null
+                        && !result.processedMarkdown().isBlank();
+                    model.addAttribute("hasMarkdown", hasMarkdown);
                 }
             }
             case FAILED -> {
@@ -301,6 +309,7 @@ public class RecipeController {
                 model.addAttribute("rawHtml", "");
                 model.addAttribute("progressSteps", session.progressMessages());
                 model.addAttribute("isMultiPage", false);
+                model.addAttribute("hasMarkdown", false);
             }
             case CANCELLED -> {
                 model.addAttribute("structured", "Test cancelled by user");
@@ -309,6 +318,7 @@ public class RecipeController {
                 model.addAttribute("rawHtml", "");
                 model.addAttribute("progressSteps", session.progressMessages());
                 model.addAttribute("isMultiPage", false);
+                model.addAttribute("hasMarkdown", false);
             }
             default -> throw new ResponseStatusException(HttpStatus.ACCEPTED, "Session still running");
         }

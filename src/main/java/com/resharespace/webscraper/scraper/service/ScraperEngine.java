@@ -9,6 +9,7 @@ import com.browzwi.webscraper.service.settings.SettingsService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -128,8 +129,8 @@ public class ScraperEngine {
         
         ProgressListener listener = progressListener == null ? ProgressListener.noop() : progressListener;
         List<String> progress = new ArrayList<>();
-        Map<String, MultiPageScrapeResult.PageResult> pageResults = new HashMap<>();
-        Map<String, Object> combinedData = new HashMap<>();
+        Map<String, MultiPageScrapeResult.PageResult> pageResults = new LinkedHashMap<>();
+        Map<String, Object> combinedData = new LinkedHashMap<>();
         
         try {
             // Scrape main page
