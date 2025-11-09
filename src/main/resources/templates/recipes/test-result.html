@@ -21,6 +21,18 @@
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-slate-700">Processed HTML</h3>
                 <div class="flex items-center space-x-2 text-xs">
+                    <!-- Page selector dropdown for multi-page results -->
+                    <div th:if="${isMultiPage}" class="relative">
+                        <select class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs border border-slate-300"
+                                onchange="switchPage(this.value)"
+                                th:attr="data-session-id=${sessionId}">
+                            <option th:each="pageEntry : ${pageResults}" 
+                                    th:value="${pageEntry.key}" 
+                                    th:text="${pageEntry.key == 'main' ? 'Main Page' : pageEntry.key}"
+                                    th:selected="${pageEntry.key == selectedPage}">
+                            </option>
+                        </select>
+                    </div>
                     <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700"
                             onclick="copyFromElement(this, '#testProcessedHtml')">Copy</button>
                     <button type="button" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white"
@@ -49,6 +61,18 @@
         <summary class="cursor-pointer text-sm text-slate-600">Raw HTML</summary>
         <pre class="mt-2 bg-slate-900 text-slate-100 text-xs rounded-lg p-3 overflow-auto" th:text="${rawHtml}"></pre>
     </details>
+
+    <script th:if="${isMultiPage}">
+        function switchPage(pageKey) {
+            const sessionId = document.querySelector('select[data-session-id]').getAttribute('data-session-id');
+            const url = `/recipes/test/${sessionId}/result?page=${encodeURIComponent(pageKey)}`;
+            
+            htmx.ajax('GET', url, {
+                target: '#testResultContainer',
+                swap: 'innerHTML'
+            });
+        }
+    </script>
 </div>
 </body>
 </html>

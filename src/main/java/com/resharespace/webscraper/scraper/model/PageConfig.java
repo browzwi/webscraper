@@ -8,6 +8,7 @@ public class PageConfig {
     private String contentRoot;
     private String hrefSelector;
     private List<FieldConfig> fields = new ArrayList<>();
+    private List<SubPageConfig> subPages = new ArrayList<>();
 
     public String getContentRoot() {
         return contentRoot;
@@ -31,5 +32,13 @@ public class PageConfig {
 
     public void setFields(List<FieldConfig> fields) {
         this.fields = fields;
+    }
+
+    public List<SubPageConfig> getSubPages() {
+        return subPages;
+    }
+
+    public void setSubPages(List<SubPageConfig> subPages) {
+        this.subPages = subPages;
     }
 }

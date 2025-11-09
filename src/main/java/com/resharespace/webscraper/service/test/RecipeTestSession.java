@@ -2,6 +2,7 @@ package com.browzwi.webscraper.service.test;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.browzwi.webscraper.scraper.service.MultiPageScrapeResult;
 import com.browzwi.webscraper.scraper.service.ScraperEngine;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ public class RecipeTestSession {
     private volatile Status status = Status.PENDING;
     private volatile String errorMessage;
     private volatile ScraperEngine.ScrapeExecutionResult result;
+    private volatile MultiPageScrapeResult multiPageResult;
 
     public RecipeTestSession(UUID id, String url) {
         this.id = Objects.requireNonNull(id, "id");
@@ -65,6 +67,15 @@ public class RecipeTestSession {
         return result;
     }
 
+    @JsonIgnore
+    public MultiPageScrapeResult getMultiPageResult() {
+        return multiPageResult;
+    }
+
+    public boolean isMultiPage() {
+        return multiPageResult != null;
+    }
+
     public boolean isCancelRequested() {
         return cancelRequested.get();
     }
@@ -83,6 +94,11 @@ public class RecipeTestSession {
 
     public synchronized void markCompleted(ScraperEngine.ScrapeExecutionResult result) {
         this.result = result;
+        this.status = Status.COMPLETED;
+    }
+
+    public synchronized void markCompletedMultiPage(MultiPageScrapeResult result) {
+        this.multiPageResult = result;
         this.status = Status.COMPLETED;
     }
 
@@ -129,8 +145,12 @@ public class RecipeTestSession {
     }
 
     public synchronized List<String> progressMessages() {
-        if (status == Status.COMPLETED && result != null) {
-            return new ArrayList<>(result.progressSteps());
+        if (status == Status.COMPLETED) {
+            if (multiPageResult != null) {
+                return new ArrayList<>(multiPageResult.progressSteps());
+            } else if (result != null) {
+                return new ArrayList<>(result.progressSteps());
+            }
         }
         List<String> messages = new ArrayList<>();
         for (TestStep step : steps) {

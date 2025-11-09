@@ -1,0 +1,47 @@
+name: Facebook Public Page Multi-Page
+description: Scrapes Facebook public pages including main page and about page with different field configurations
+match:
+  urlRegexes:
+    - 'https://www.facebook.com/[A-Za-z0-9\.]+($|/.*)'
+page:
+  hrefSelector: "a[href*='facebook.com/']"
+  # Fields for the main page
+  fields:
+    - name: title
+      selectors: ["h1", "title"]
+      source: TEXT
+    - name: avatar
+      selectors: ["svg[aria-label]:first-of-type g image"]
+      source: ATTR
+      attributeName: xlink:href
+    - name: main_page_content
+      selectors: ["[data-pagelet='ProfileTimeline']", ".userContentWrapper"]
+      source: TEXT
+  # Sub-pages with different field configurations
+  subPages:
+    - path: /about
+      fields:
+        - name: about_description
+          selectors: ["[data-overviewsection='contact_basic_info']", ".about_section"]
+          source: TEXT
+        - name: contact_info
+          selectors: ["[data-overviewsection='contact_basic_info'] .clearfix"]
+          source: TEXT
+        - name: website_url
+          selectors: ["a[href^='http']"]
+          source: ATTR
+          attributeName: href
+    - path: /photos
+      fields:
+        - name: photo_count
+          selectors: [".photoCount", "[data-testid='photo_count']"]
+          source: TEXT
+        - name: recent_photos
+          selectors: ["img[src*='scontent']"]
+          source: ATTR
+          attributeName: src
+          multiple: true
+options:
+  stripCss: true
+  stripJs: true
+  removeAttributes: true

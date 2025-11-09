@@ -239,19 +239,47 @@ public class RecipeController {
     }
 
     @GetMapping("/test/{sessionId}/result")
-    public String getResult(@PathVariable UUID sessionId, Model model) throws JsonProcessingException {
+    public String getResult(@PathVariable UUID sessionId, 
+                           @RequestParam(value = "page", defaultValue = "main") String pageKey,
+                           Model model) throws JsonProcessingException {
         RecipeTestSession session = testSessionService.getSession(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
+        
+        model.addAttribute("sessionId", sessionId);
         model.addAttribute("testStatus", session.getStatus().name());
+        
         switch (session.getStatus()) {
             case COMPLETED -> {
-                var result = session.getResult();
-                model.addAttribute("structured", objectMapper.writerWithDefaultPrettyPrinter()
-                        .writeValueAsString(result.structuredData()));
-                model.addAttribute("processedHtml", result.processedHtml());
-                model.addAttribute("processedMarkdown", result.processedMarkdown());
-                model.addAttribute("rawHtml", result.rawHtml());
-                model.addAttribute("progressSteps", result.progressSteps());
+                if (session.isMultiPage()) {
+                    var multiResult = session.getMultiPageResult();
+                    model.addAttribute("structured", objectMapper.writerWithDefaultPrettyPrinter()
+                            .writeValueAsString(multiResult.combinedStructuredData()));
+                    model.addAttribute("progressSteps", multiResult.progressSteps());
+                    model.addAttribute("isMultiPage", true);
+                    model.addAttribute("pageResults", multiResult.pageResults());
+                    model.addAttribute("selectedPage", pageKey);
+                    
+                    // Get specific page result for display
+                    var pageResult = multiResult.pageResults().get(pageKey);
+                    if (pageResult != null) {
+                        model.addAttribute("processedHtml", pageResult.processedHtml());
+                        model.addAttribute("processedMarkdown", pageResult.processedMarkdown());
+                        model.addAttribute("rawHtml", pageResult.rawHtml());
+                    } else {
+                        model.addAttribute("processedHtml", "");
+                        model.addAttribute("processedMarkdown", "");
+                        model.addAttribute("rawHtml", "");
+                    }
+                } else {
+                    var result = session.getResult();
+                    model.addAttribute("structured", objectMapper.writerWithDefaultPrettyPrinter()
+                            .writeValueAsString(result.structuredData()));
+                    model.addAttribute("processedHtml", result.processedHtml());
+                    model.addAttribute("processedMarkdown", result.processedMarkdown());
+                    model.addAttribute("rawHtml", result.rawHtml());
+                    model.addAttribute("progressSteps", result.progressSteps());
+                    model.addAttribute("isMultiPage", false);
+                }
             }
             case FAILED -> {
                 String message = session.getErrorMessage() != null ? session.getErrorMessage() : "Unknown failure";
@@ -260,6 +288,7 @@ public class RecipeController {
                 model.addAttribute("processedMarkdown", "");
                 model.addAttribute("rawHtml", "");
                 model.addAttribute("progressSteps", session.progressMessages());
+                model.addAttribute("isMultiPage", false);
             }
             case CANCELLED -> {
                 model.addAttribute("structured", "Test cancelled by user");
@@ -267,6 +296,7 @@ public class RecipeController {
                 model.addAttribute("processedMarkdown", "");
                 model.addAttribute("rawHtml", "");
                 model.addAttribute("progressSteps", session.progressMessages());
+                model.addAttribute("isMultiPage", false);
             }
             default -> throw new ResponseStatusException(HttpStatus.ACCEPTED, "Session still running");
         }

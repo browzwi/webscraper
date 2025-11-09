@@ -2,6 +2,7 @@ package com.browzwi.webscraper.scraper.service;
 
 import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
+import com.browzwi.webscraper.scraper.model.SubPageConfig;
 import com.browzwi.webscraper.scraper.service.HtmlProcessingService.ProcessedHtmlResult;
 import com.browzwi.webscraper.service.settings.ScrapeFetcherType;
 import com.browzwi.webscraper.service.settings.SettingsService;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
@@ -114,6 +116,103 @@ public class ScraperEngine {
             log.error("[ScraperEngine] Scrape failed for {}", url, ex);
             throw new ScrapeException("Failed to execute scraper", ex);
         }
+    }
+
+    public MultiPageScrapeResult executeMultiPage(RecipeConfig recipe,
+                                                  String seedUrl,
+                                                  OptionsConfig overrides,
+                                                  ProgressListener progressListener) {
+        if (recipe == null) {
+            throw new ScrapeException("Recipe is required");
+        }
+        
+        ProgressListener listener = progressListener == null ? ProgressListener.noop() : progressListener;
+        List<String> progress = new ArrayList<>();
+        Map<String, MultiPageScrapeResult.PageResult> pageResults = new HashMap<>();
+        Map<String, Object> combinedData = new HashMap<>();
+        
+        try {
+            // Scrape main page
+            String currentStep = "Scraping main page: " + seedUrl;
+            listener.onStepStarted(currentStep);
+            progress.add(currentStep);
+            
+            ScrapeExecutionResult mainResult = execute(recipe, seedUrl, overrides, listener);
+            pageResults.put("main", new MultiPageScrapeResult.PageResult(
+                seedUrl, mainResult.rawHtml(), mainResult.processedHtml(), 
+                mainResult.processedMarkdown(), mainResult.structuredData(), mainResult.hrefs()
+            ));
+            
+            // Add main page fields to combined data
+            combinedData.putAll(mainResult.structuredData());
+            listener.onStepCompleted(currentStep);
+            
+            // Process sub-pages if configured
+            if (recipe.getPage().getSubPages() != null && !recipe.getPage().getSubPages().isEmpty()) {
+                for (SubPageConfig subPage : recipe.getPage().getSubPages()) {
+                    String subPageUrl = buildSubPageUrl(seedUrl, subPage.getPath());
+                    currentStep = "Scraping sub-page: " + subPageUrl;
+                    listener.onStepStarted(currentStep);
+                    progress.add(currentStep);
+                    
+                    try {
+                        ScrapeExecutionResult subResult = scrapeSubPage(recipe, subPageUrl, subPage, overrides, listener);
+                        String pageKey = subPage.getPath().startsWith("/") ? subPage.getPath().substring(1) : subPage.getPath();
+                        pageResults.put(pageKey, new MultiPageScrapeResult.PageResult(
+                            subPageUrl, subResult.rawHtml(), subResult.processedHtml(),
+                            subResult.processedMarkdown(), subResult.structuredData(), subResult.hrefs()
+                        ));
+                        
+                        // Merge sub-page fields into combined data
+                        combinedData.putAll(subResult.structuredData());
+                        listener.onStepCompleted(currentStep);
+                    } catch (Exception e) {
+                        listener.onStepFailed(currentStep, e.getMessage());
+                        progress.add("Failed sub-page: " + subPageUrl + " - " + e.getMessage());
+                    }
+                }
+            }
+            
+            return new MultiPageScrapeResult(combinedData, pageResults, progress);
+            
+        } catch (Exception ex) {
+            progress.add("Failed: " + ex.getMessage());
+            log.error("[ScraperEngine] Multi-page scrape failed for {}", seedUrl, ex);
+            throw new ScrapeException("Failed to execute multi-page scraper", ex);
+        }
+    }
+
+    private String buildSubPageUrl(String seedUrl, String path) {
+        if (path == null || path.trim().isEmpty()) {
+            return seedUrl;
+        }
+        
+        String cleanSeedUrl = seedUrl.endsWith("/") ? seedUrl.substring(0, seedUrl.length() - 1) : seedUrl;
+        String cleanPath = path.startsWith("/") ? path : "/" + path;
+        
+        return cleanSeedUrl + cleanPath;
+    }
+
+    private ScrapeExecutionResult scrapeSubPage(RecipeConfig recipe, String url, SubPageConfig subPage, 
+                                               OptionsConfig overrides, ProgressListener listener) {
+        PageFetcher fetcher = selectFetcher();
+        String rawHtml = fetcher.fetch(url);
+        Document document = Jsoup.parse(rawHtml);
+        
+        OptionsConfig effectiveOptions = mergeOptions(recipe.getOptions(), overrides);
+        ProcessedHtmlResult processed = htmlProcessingService.process(rawHtml, effectiveOptions, recipe.getPage());
+        
+        // Extract fields using sub-page specific configuration
+        Map<String, Object> fields = fieldExtractionService.extractFieldsFromConfig(document, subPage.getFields());
+        
+        Map<String, Object> structuredData = new HashMap<>(fields);
+        structuredData.put("url", url);
+        structuredData.put("timestamp", Instant.now().toString());
+        
+        String markdown = markdownConversionService.toMarkdown(processed.processedHtml());
+        
+        return new ScrapeExecutionResult(rawHtml, processed.processedHtml(), markdown, 
+                                       structuredData, processed.hrefs(), List.of());
     }
 
     private void checkCancellation(ProgressListener listener) {

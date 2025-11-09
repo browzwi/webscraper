@@ -29,6 +29,20 @@ public class FieldExtractionService {
         return results;
     }
 
+    public Map<String, Object> extractFieldsFromConfig(Document document, List<FieldConfig> fieldConfigs) {
+        Map<String, Object> results = new HashMap<>();
+        if (fieldConfigs == null) {
+            return results;
+        }
+        for (FieldConfig field : fieldConfigs) {
+            Object value = field.isMultiple()
+                    ? extractMultiple(document, field)
+                    : extractSingle(document, field);
+            results.put(field.getName(), value);
+        }
+        return results;
+    }
+
     private Object extractSingle(Document document, FieldConfig field) {
         for (String selector : field.getSelectors()) {
             Element element = document.select(selector).stream().findFirst().orElse(null);

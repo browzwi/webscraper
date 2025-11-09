@@ -2,6 +2,7 @@ package com.browzwi.webscraper.service.test;
 
 import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
+import com.browzwi.webscraper.scraper.service.MultiPageScrapeResult;
 import com.browzwi.webscraper.scraper.service.ScraperEngine;
 import com.browzwi.webscraper.service.ScraperRecipeService;
 import java.util.Map;
@@ -54,8 +55,16 @@ public class RecipeTestSessionService {
             RecipeConfig config = recipeService.parse(yaml);
             OptionsConfig overrides = new OptionsConfig();
             ScraperEngine.ProgressListener listener = new SessionProgressListener(session);
-            var result = scraperEngine.execute(config, url, overrides, listener);
-            session.markCompleted(result);
+            
+            // Check if recipe has sub-pages configured for multi-page scraping
+            if (config.getPage().getSubPages() != null && !config.getPage().getSubPages().isEmpty()) {
+                MultiPageScrapeResult result = scraperEngine.executeMultiPage(config, url, overrides, listener);
+                session.markCompletedMultiPage(result);
+            } else {
+                var result = scraperEngine.execute(config, url, overrides, listener);
+                session.markCompleted(result);
+            }
+            
             log.info("[RecipeTestSession] Session {} completed", session.getId());
         } catch (ScraperRecipeService.InvalidRecipeException ex) {
             log.warn("[RecipeTestSession] Session {} failed to parse recipe", session.getId(), ex);
