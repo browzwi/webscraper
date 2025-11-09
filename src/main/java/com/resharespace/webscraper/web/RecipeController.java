@@ -4,13 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.browzwi.webscraper.domain.ScraperRecipe;
 import com.browzwi.webscraper.repository.ScraperRecipeRepository;
+import com.browzwi.webscraper.scraper.service.MultiPageScrapeResult;
 import com.browzwi.webscraper.service.ScraperRecipeService;
 import com.browzwi.webscraper.service.test.RecipeTestSession;
 import com.browzwi.webscraper.service.test.RecipeTestSessionService;
 import com.browzwi.webscraper.web.dto.RecipeExample;
 import com.browzwi.webscraper.web.dto.RecipeForm;
 import jakarta.validation.Valid;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -267,7 +271,42 @@ public class RecipeController {
                             .writeValueAsString(multiResult.combinedStructuredData()));
                     model.addAttribute("progressSteps", multiResult.progressSteps());
                     model.addAttribute("isMultiPage", true);
-                    model.addAttribute("pageResults", multiResult.pageResults());
+                    
+                    // Preprocess page results with sanitized keys and computed values to avoid complex operations in template
+                    Map<String, Object> processedPageResults = new LinkedHashMap<>();
+                    for (Map.Entry<String, MultiPageScrapeResult.PageResult> entry : multiResult.pageResults().entrySet()) {
+                        String currentPageKey = entry.getKey();
+                        MultiPageScrapeResult.PageResult pageResult = entry.getValue();
+                        
+                        // Create sanitized key for use in HTML ids and attributes
+                        String sanitizedKey = sanitizeForHtmlId(currentPageKey);
+                        
+                        // Create computed IDs for HTML elements
+                        String processedHtmlId = "testProcessedHtml__" + sanitizedKey;
+                        String markdownId = "testProcessedMarkdown__" + sanitizedKey;
+                        String rawId = "testRawHtml__" + sanitizedKey;
+                        
+                        // Create page label
+                        String pageLabel = "main".equals(currentPageKey) ? "Main Page" : currentPageKey;
+                        
+                        // Store the processed information
+                        Map<String, Object> processedPage = new HashMap<>();
+                        processedPage.put("result", pageResult);
+                        processedPage.put("key", currentPageKey);
+                        processedPage.put("label", pageLabel);
+                        processedPage.put("sanitizedKey", sanitizedKey);
+                        processedPage.put("processedHtmlId", processedHtmlId);
+                        processedPage.put("markdownId", markdownId);
+                        processedPage.put("rawId", rawId);
+                        // Precompute onclick attributes to avoid complex SpEL in template
+                        processedPage.put("processedHtmlOnclick", "copyFromElement(this, '#" + processedHtmlId + "')");
+                        processedPage.put("markdownOnclick", "copyFromElement(this, '#" + markdownId + "')");
+                        processedPage.put("rawOnclick", "copyFromElement(this, '#" + rawId + "')");
+                        
+                        processedPageResults.put(currentPageKey, processedPage);
+                    }
+                    
+                    model.addAttribute("pageResults", processedPageResults);
 
                     boolean hasMarkdown = multiResult.pageResults().values().stream()
                         .anyMatch(pageResult -> pageResult.processedMarkdown() != null
@@ -323,6 +362,14 @@ public class RecipeController {
             default -> throw new ResponseStatusException(HttpStatus.ACCEPTED, "Session still running");
         }
         return "recipes/test-result :: result";
+    }
+
+    private String sanitizeForHtmlId(String input) {
+        if (input == null) {
+            return "";
+        }
+        // Replace problematic characters with hyphens or remove them
+        return input.replaceAll("[^a-zA-Z0-9_\\-]", "-");
     }
 
     public record TestSessionResponse(UUID sessionId) {

@@ -161,12 +161,13 @@
 
                         <div th:if="${isMultiPage}" class="space-y-5">
                             <div th:each="pageKey : ${pageResults.keySet()}"
-                                 th:with="pageValue=${pageResults.get(pageKey)},
-                                          pageLabel=${pageKey == 'main' ? 'Main Page' : pageKey},
-                                          sanitizedKey=${#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(pageKey, ' ', '-'), '/', '-'), '.', '-'), ':', '-'), '?', '-'), '=', '-'), '&', '-'), '%', '-'), '+', '-'), '#', '-')},
-                                          processedHtmlId=${'testProcessedHtml__' + sanitizedKey},
-                                          markdownId=${'testProcessedMarkdown__' + sanitizedKey},
-                                          rawId=${'testRawHtml__' + sanitizedKey}"
+                                 th:with="processedPage=${pageResults.get(pageKey)},
+                                          pageValue=${processedPage.result},
+                                          pageLabel=${processedPage.label},
+                                          sanitizedKey=${processedPage.sanitizedKey},
+                                          processedHtmlId=${processedPage.processedHtmlId},
+                                          markdownId=${processedPage.markdownId},
+                                          rawId=${processedPage.rawId}"
                                  class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-4">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
                                     <div>
@@ -179,7 +180,7 @@
                                     <div class="flex items-center gap-2">
                                         <button type="button"
                                                 class="btn btn-secondary text-xs"
-                                                th:attr="onclick=${'copyFromElement(this, \'#' + processedHtmlId + '\')'}">
+                                                th:attr="onclick=${processedPage.processedHtmlOnclick}">
                                             <span class="material-symbols-outlined text-sm">content_copy</span>
                                             <span>Copy HTML</span>
                                         </button>
@@ -204,7 +205,7 @@
                                          class="mt-3 bg-black/30 text-zinc-300 p-3 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
                                          th:text="${pageValue.rawHtml}"></pre>
                                 </details>
-                                <div th:if="${pageValue.processedMarkdown != null and #strings.length(pageValue.processedMarkdown) > 0}"
+                                <div th:if="${pageValue != null and pageValue.processedMarkdown != null and #strings.length(pageValue.processedMarkdown) > 0}"
                                      class="border-t border-zinc-800/60 pt-4">
                                     <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
                                         <h5 class="text-white font-semibold flex items-center gap-2">
@@ -213,7 +214,7 @@
                                         </h5>
                                         <button type="button"
                                                 class="btn btn-secondary text-xs"
-                                                th:attr="onclick=${'copyFromElement(this, \'#' + markdownId + '\')'}">
+                                                th:attr="onclick=${processedPage.markdownOnclick}">
                                             <span class="material-symbols-outlined text-sm">content_copy</span>
                                             <span>Copy Markdown</span>
                                         </button>
@@ -246,11 +247,12 @@
                         </div>
                         <div th:if="${isMultiPage}" class="space-y-5">
                             <div th:each="pageKey : ${pageResults.keySet()}"
-                                 th:with="pageValue=${pageResults.get(pageKey)},
-                                          pageLabel=${pageKey == 'main' ? 'Main Page' : pageKey},
-                                          sanitizedKey=${#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(#strings.replace(pageKey, ' ', '-'), '/', '-'), '.', '-'), ':', '-'), '?', '-'), '=', '-'), '&', '-'), '%', '-'), '+', '-'), '#', '-')},
-                                          markdownId=${'tabOnlyMarkdown__' + sanitizedKey}"
-                                 th:if="${pageValue.processedMarkdown != null and #strings.length(pageValue.processedMarkdown) > 0}"
+                                 th:with="processedPage=${pageResults.get(pageKey)},
+                                          pageValue=${processedPage.result},
+                                          pageLabel=${processedPage.label},
+                                          sanitizedKey=${processedPage.sanitizedKey},
+                                          markdownId=${'tabOnlyMarkdown__'.concat(sanitizedKey)}"
+                                 th:if="${pageValue != null and pageValue.processedMarkdown != null and #strings.length(pageValue.processedMarkdown) > 0}"
                                  class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-3">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
                                     <h4 class="text-white font-semibold flex items-center gap-2">
@@ -259,7 +261,7 @@
                                     </h4>
                                     <button type="button"
                                             class="btn btn-secondary text-xs"
-                                            th:attr="onclick=${'copyFromElement(this, \'#' + markdownId + '\')'}">
+                                            th:attr="onclick=${processedPage.markdownOnclick}">
                                         <span class="material-symbols-outlined text-sm">content_copy</span>
                                         <span>Copy Markdown</span>
                                     </button>
