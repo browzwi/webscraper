@@ -189,16 +189,39 @@ public class ScrapeJobController {
                 .body(resource);
     }
 
+    /**
+     * Renders the HTMX-friendly modal displaying progress information for a scrape target.
+     *
+     * <p>Implementation rationale: delegates the markup to a Thymeleaf fragment so the client no
+     * longer mutates DOM nodes manually, aligning with the project's partial-rendering approach.</p>
+     *
+     * @param jobId identifier of the owning job
+     * @param targetId identifier of the target whose progress is requested
+     * @param model Spring MVC model receiving the view state
+     * @return Thymeleaf fragment identifier for the modal wrapper
+     */
     @GetMapping("/{jobId}/targets/{targetId}/status")
     public String targetProgress(@PathVariable UUID jobId,
                                  @PathVariable UUID targetId,
                                  Model model) {
-        jobService.getJob(jobId);
-        ScrapeTarget target = jobService.getTarget(targetId);
-        Optional<ScrapeResultData> resultOpt = jobService.findResult(targetId);
-        ScrapeTargetProgressView progressView = buildProgressView(target, resultOpt);
+        ScrapeTargetProgressView progressView = loadProgressView(jobId, targetId);
         model.addAttribute("progress", progressView);
-        return "jobs/target-progress :: content";
+        model.addAttribute("closeUrl", buildProgressCloseUrl(jobId, targetId));
+        return "jobs/target-progress-modal :: modal";
+    }
+
+    /**
+     * Returns an empty fragment to collapse the HTMX-driven progress modal.
+     *
+     * @param jobId identifier of the owning job
+     * @param targetId identifier of the scrape target whose modal is being closed
+     * @return Thymeleaf fragment identifier rendering no content
+     */
+    @GetMapping("/{jobId}/targets/{targetId}/status/close")
+    public String closeTargetProgress(@PathVariable UUID jobId, @PathVariable UUID targetId) {
+        jobService.getJob(jobId);
+        jobService.getTarget(targetId);
+        return "jobs/target-progress-modal :: empty";
     }
 
     private ScrapeJobListItemView toListItemView(ScrapeJob job) {
@@ -323,7 +346,18 @@ public class ScrapeJobController {
     }
 
     private String buildArchiveFileName(ScrapeTarget target) {
-        return "target-" + target.getId() + ".webarchive";
+        return "target-" + target.getId() + ".zip";
+    }
+
+    private ScrapeTargetProgressView loadProgressView(UUID jobId, UUID targetId) {
+        jobService.getJob(jobId);
+        ScrapeTarget target = jobService.getTarget(targetId);
+        Optional<ScrapeResultData> resultOpt = jobService.findResult(targetId);
+        return buildProgressView(target, resultOpt);
+    }
+
+    private String buildProgressCloseUrl(UUID jobId, UUID targetId) {
+        return "/jobs/" + jobId + "/targets/" + targetId + "/status/close";
     }
 
     private String prettyJson(String json) {

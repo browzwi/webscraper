@@ -101,9 +101,8 @@
                                     <span>View Data</span>
                                 </button>
                                 <button class="btn btn-ghost text-xs px-3 py-1"
-                                        hx-on::beforeRequest="window.showProgressModal()"
                                         th:attr="hx-get=@{'/jobs/' + ${jobDetail.id} + '/targets/' + ${target.id} + '/status'},
-                                                 hx-target='#progressModalContent',
+                                                 hx-target='#progress-modal-host',
                                                  hx-swap='innerHTML'">
                                     <span class="material-symbols-outlined text-sm">speed</span>
                                     <span>Progress</span>
@@ -138,16 +137,6 @@
         </div>
     </section>
 
-    <div id="progressModal" data-modal-root class="hidden fixed inset-0 z-50 flex items-center justify-center" aria-hidden="true">
-        <div class="absolute inset-0 bg-black/70" onclick="window.toggleModal('progressModal','close')"></div>
-        <div class="relative z-10 w-full max-w-3xl mx-auto px-4">
-            <div id="progressModalContent" class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl">
-                <div class="px-6 py-10 text-center text-zinc-400">
-                    <span class="material-symbols-outlined text-4xl">hourglass_empty</span>
-                    <p class="mt-3 text-sm">Fetching the latest progress updates…</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="progress-modal-host"></div>
 </main>
 </html>

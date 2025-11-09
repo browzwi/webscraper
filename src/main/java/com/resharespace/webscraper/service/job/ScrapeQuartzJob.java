@@ -14,8 +14,8 @@ import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
 import com.browzwi.webscraper.scraper.service.ScraperEngine;
 import com.browzwi.webscraper.scraper.service.ScraperEngine.ProgressListener;
-import com.browzwi.webscraper.storage.FileStorageService;
 import com.browzwi.webscraper.service.ScraperRecipeService;
+import com.browzwi.webscraper.storage.FileStorageService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -80,11 +80,22 @@ public class ScrapeQuartzJob implements Job {
                     if (recipeConfig.getPage().getSubPages() != null && !recipeConfig.getPage().getSubPages().isEmpty()) {
                         // Handle multi-page scraping
                         var multiResult = scraperEngine.executeMultiPage(recipeConfig, target.getUrl(), overrides, ProgressListener.noop());
-                        // For multi-page results, we'll store the combined structured data for now
-                        // Detailed per-page storage would require additional schema changes
-                        
-                        storageService.storeRawHtml(job.getId(), target.getId(), ""); // Multi-page doesn't have a single raw HTML
-                        storageService.storeProcessedHtml(job.getId(), target.getId(), ""); // Multi-page doesn't have a single processed HTML
+
+                        storageService.clearPageArtifacts(job.getId(), target.getId());
+                        int pageOrder = 0;
+                        for (var entry : multiResult.pageResults().entrySet()) {
+                            pageOrder++;
+                            var pageKey = entry.getKey();
+                            var pageResult = entry.getValue();
+                            storageService.storePageResult(job.getId(), target.getId(), pageOrder, pageKey,
+                                    pageResult.url(), pageResult.rawHtml(), pageResult.processedHtml(),
+                                    pageResult.processedMarkdown());
+                            if (pageOrder == 1) {
+                                storageService.storeRawHtml(job.getId(), target.getId(), pageResult.rawHtml());
+                                storageService.storeProcessedHtml(job.getId(), target.getId(), pageResult.processedHtml());
+                                storageService.storeProcessedMarkdown(job.getId(), target.getId(), pageResult.processedMarkdown());
+                            }
+                        }
 
                         ScrapeResultData data = resultRepository.findByTargetId(target.getId())
                                 .orElseGet(() -> {
@@ -100,6 +111,7 @@ public class ScrapeQuartzJob implements Job {
                         var result = scraperEngine.execute(recipeConfig, target.getUrl(), overrides, ProgressListener.noop());
                         storageService.storeRawHtml(job.getId(), target.getId(), result.rawHtml());
                         storageService.storeProcessedHtml(job.getId(), target.getId(), result.processedHtml());
+                        storageService.storeProcessedMarkdown(job.getId(), target.getId(), result.processedMarkdown());
 
                         ScrapeResultData data = resultRepository.findByTargetId(target.getId())
                                 .orElseGet(() -> {
@@ -116,7 +128,7 @@ public class ScrapeQuartzJob implements Job {
                     target.setFinishedAt(Instant.now());
                     targetRepository.save(target);
                 } catch (Exception ex) {
-                    log.error("Target {} failed", target.getId(), ex);
+                    log.error("[ScrapeQuartzJob] Target {} for URL {} failed: {}", target.getId(), target.getUrl(), ex.getMessage(), ex);
                     jobFailed = true;
                     target.setStatus(ScrapeTargetStatus.FAILED);
                     target.setFinishedAt(Instant.now());

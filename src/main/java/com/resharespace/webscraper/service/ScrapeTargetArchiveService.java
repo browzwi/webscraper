@@ -3,8 +3,9 @@ package com.browzwi.webscraper.service;
 import com.browzwi.webscraper.domain.ScrapeJob;
 import com.browzwi.webscraper.domain.ScrapeResultData;
 import com.browzwi.webscraper.domain.ScrapeTarget;
-import com.browzwi.webscraper.storage.FileStorageService;
 import com.browzwi.webscraper.scraper.service.MarkdownConversionService;
+import com.browzwi.webscraper.storage.FileStorageService;
+import com.browzwi.webscraper.storage.FileStorageService.StoredPageResult;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -12,7 +13,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -28,7 +31,7 @@ import org.springframework.stereotype.Service;
  * orchestrating view rendering while this service composes filesystem artefacts and metadata into a
  * portable representation.
  *
- * <p>Key constraints: archives are emitted as ZIP streams with a <code>.webarchive</code> extension,
+ * <p>Key constraints: archives are emitted as ZIP streams with a <code>.zip</code> extension,
  * include a metadata XML descriptor, and embed artefacts under a randomly generated directory to
  * avoid collisions when jobs run repeatedly.
  *
@@ -50,7 +53,8 @@ public class ScrapeTargetArchiveService {
 
     /**
      * Determines whether an archive can be produced for the given target by checking that at least
-     * one artefact (raw HTML, processed HTML, or structured data) exists.
+     * one artefact (raw HTML, processed HTML, processed Markdown, per-page capture, or structured
+     * data) exists.
      *
      * <p>Implementation rationale: avoids surprising 404s by exposing the availability check to the
      * controller before attempting archive generation.
@@ -63,6 +67,8 @@ public class ScrapeTargetArchiveService {
     public boolean canBuildArchive(UUID jobId, UUID targetId, Optional<ScrapeResultData> result) {
         return storageService.existsRawHtml(jobId, targetId)
                 || storageService.existsProcessedHtml(jobId, targetId)
+                || storageService.existsProcessedMarkdown(jobId, targetId)
+                || storageService.hasPageArtifacts(jobId, targetId)
                 || result.isPresent();
     }
 
@@ -87,10 +93,13 @@ public class ScrapeTargetArchiveService {
 
         String rawHtml = storageService.loadRawHtml(job.getId(), target.getId());
         String processedHtml = storageService.loadProcessedHtml(job.getId(), target.getId());
-        String processedMarkdown = processedHtml != null && !processedHtml.isBlank()
-                ? markdownConversionService.toMarkdown(processedHtml)
-                : null;
+        String processedMarkdown = storageService.loadProcessedMarkdown(job.getId(), target.getId());
+        if ((processedMarkdown == null || processedMarkdown.isBlank())
+                && processedHtml != null && !processedHtml.isBlank()) {
+            processedMarkdown = markdownConversionService.toMarkdown(processedHtml);
+        }
         String structuredJson = result.map(ScrapeResultData::getDataJson).orElse(null);
+        List<StoredPageResult> pageResults = storageService.loadPageResults(job.getId(), target.getId());
 
         List<ArchiveFile> artefacts = new ArrayList<>();
         if (rawHtml != null && !rawHtml.isBlank()) {
@@ -106,14 +115,19 @@ public class ScrapeTargetArchiveService {
             artefacts.add(new ArchiveFile("structured.json", structuredJson));
         }
 
+        List<PageArchive> pageArchives = pageResults.stream()
+                .map(page -> toPageArchive(page, artefacts))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
         UUID artefactDirId = UUID.randomUUID();
-        String metadata = buildMetadata(job, target, result, artefactDirId, artefacts);
+        String metadata = buildMetadata(job, target, result, artefactDirId, artefacts, pageArchives);
 
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              ZipOutputStream zos = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
             writeEntry(zos, "metadata.xml", metadata);
             for (ArchiveFile file : artefacts) {
-                String entryName = "artifacts/" + artefactDirId + "/" + file.name();
+                String entryName = "artifacts/" + artefactDirId + "/" + file.relativePath();
                 writeEntry(zos, entryName, file.content());
             }
             zos.finish();
@@ -127,7 +141,8 @@ public class ScrapeTargetArchiveService {
                                  ScrapeTarget target,
                                  Optional<ScrapeResultData> result,
                                  UUID artefactDirId,
-                                 List<ArchiveFile> artefacts) {
+                                 List<ArchiveFile> artefacts,
+                                 List<PageArchive> pageArchives) {
         String started = formatInstant(target.getStartedAt());
         String finished = formatInstant(target.getFinishedAt());
         String durationSeconds = formatDurationSeconds(target.getStartedAt(), target.getFinishedAt());
@@ -137,9 +152,15 @@ public class ScrapeTargetArchiveService {
                 .orElse("");
 
         String filesXml = artefacts.stream()
-                .map(file -> "    <file name=\"" + escapeXml(file.name()) + "\">artifacts/"
-                        + artefactDirId + "/" + escapeXml(file.name()) + "</file>")
+                .map(file -> "    <file name=\"" + escapeXml(file.relativePath()) + "\">artifacts/"
+                        + artefactDirId + "/" + escapeXml(file.relativePath()) + "</file>")
                 .collect(Collectors.joining("\n"));
+
+        String pagesXml = pageArchives.isEmpty()
+                ? ""
+                : pageArchives.stream()
+                        .map(page -> buildPageMetadata(artefactDirId, page))
+                        .collect(Collectors.joining("\n"));
 
         return Stream.of(
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
@@ -158,6 +179,9 @@ public class ScrapeTargetArchiveService {
                 "  <files>",
                 filesXml,
                 "  </files>",
+                "  <pages>",
+                pagesXml,
+                "  </pages>",
                 "</webArchive>")
                 .filter(line -> line != null && !line.isBlank())
                 .collect(Collectors.joining("\n"));
@@ -194,7 +218,63 @@ public class ScrapeTargetArchiveService {
                 .replace("'", "&apos;");
     }
 
-    private record ArchiveFile(String name, String content) {
+    private String buildPageMetadata(UUID artefactDirId, PageArchive page) {
+        List<String> fileLines = new ArrayList<>();
+        page.files().forEach((fileName, relativePath) -> fileLines.add("      <file name=\""
+                + escapeXml(fileName) + "\">artifacts/" + artefactDirId + "/" + escapeXml(relativePath) + "</file>"));
+        return Stream.of(
+                "    <page>",
+                "      <key>" + escapeXml(page.pageKey()) + "</key>",
+                "      <url>" + escapeXml(page.pageUrl()) + "</url>",
+                "      <directory>artifacts/" + artefactDirId + "/" + escapeXml(page.directoryPath()) + "</directory>",
+                "      <files>",
+                String.join("\n", fileLines),
+                "      </files>",
+                "    </page>")
+                .filter(line -> line != null && !line.isBlank())
+                .collect(Collectors.joining("\n"));
+    }
+
+    private PageArchive toPageArchive(StoredPageResult page, List<ArchiveFile> artefacts) {
+        String directoryPath = "pages/" + page.directoryName();
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        if (page.rawHtml() != null && !page.rawHtml().isBlank()) {
+            String relativePath = directoryPath + "/raw.html";
+            files.put("raw.html", relativePath);
+            artefacts.add(new ArchiveFile(relativePath, page.rawHtml()));
+        }
+        if (page.processedHtml() != null && !page.processedHtml().isBlank()) {
+            String relativePath = directoryPath + "/processed.html";
+            files.put("processed.html", relativePath);
+            artefacts.add(new ArchiveFile(relativePath, page.processedHtml()));
+        }
+        String markdown = page.processedMarkdown();
+        if ((markdown == null || markdown.isBlank())
+                && page.processedHtml() != null && !page.processedHtml().isBlank()) {
+            markdown = markdownConversionService.toMarkdown(page.processedHtml());
+        }
+        if (markdown != null && !markdown.isBlank()) {
+            String relativePath = directoryPath + "/processed.md";
+            files.put("processed.md", relativePath);
+            artefacts.add(new ArchiveFile(relativePath, markdown));
+        }
+        if (files.isEmpty()) {
+            return null;
+        }
+        return new PageArchive(page.directoryName(), page.pageKey(), page.pageUrl(), files);
+    }
+
+    private record ArchiveFile(String relativePath, String content) {
+    }
+
+    private record PageArchive(String directoryName,
+                               String pageKey,
+                               String pageUrl,
+                               LinkedHashMap<String, String> files) {
+
+        String directoryPath() {
+            return "pages/" + directoryName;
+        }
     }
 
     public static class ArchiveCreationException extends RuntimeException {

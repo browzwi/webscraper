@@ -10,10 +10,14 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class FieldExtractionService {
+
+    private static final Logger log = LoggerFactory.getLogger(FieldExtractionService.class);
 
     public Map<String, Object> extractFields(Document document, PageConfig pageConfig) {
         Map<String, Object> results = new HashMap<>();
@@ -53,6 +57,10 @@ public class FieldExtractionService {
                 }
             }
         }
+        if (field.getSelectors() != null && !field.getSelectors().isEmpty()) {
+            log.warn("[FieldExtraction] No value extracted for field '{}' using selectors {}. Verify CSS selectors in recipe.",
+                    field.getName(), field.getSelectors());
+        }
         return null;
     }
 
@@ -68,6 +76,10 @@ public class FieldExtractionService {
             if (!values.isEmpty()) {
                 break;
             }
+        }
+        if (values.isEmpty() && field.getSelectors() != null && !field.getSelectors().isEmpty()) {
+            log.warn("[FieldExtraction] No values extracted for multi field '{}' using selectors {}. Verify CSS selectors in recipe.",
+                    field.getName(), field.getSelectors());
         }
         return values;
     }
