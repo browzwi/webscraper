@@ -104,6 +104,10 @@ public class ScrapeJobService {
     public Optional<ScrapeResultData> findResult(UUID targetId) {
         return resultDataRepository.findByTargetId(targetId);
     }
+    
+    public Optional<ScrapeResultData> findLatestResultByTargetId(UUID targetId) {
+        return resultDataRepository.findByTargetId(targetId);
+    }
 
     public Optional<Instant> findNextRun(UUID jobId) {
         return schedulerService.findNextFireTime(jobId);
