@@ -1,0 +1,23 @@
+name: Facebook Multi-Page Test
+match:
+  urlRegexes:
+    - 'https://www.facebook.com/.*'
+page:
+  fields:
+    - name: title
+      selectors: ["title", "h1"]
+      source: TEXT
+  subPages:
+    - path: /about
+      fields:
+        - name: about_info
+          selectors: ["div", "p"]
+          source: TEXT
+    - path: /photos
+      fields:
+        - name: photo_info
+          selectors: ["div", "span"]
+          source: TEXT
+options:
+  stripCss: true
+  stripJs: true

@@ -169,6 +169,7 @@ public class ScraperEngine {
                     } catch (Exception e) {
                         listener.onStepFailed(currentStep, e.getMessage());
                         progress.add("Failed sub-page: " + subPageUrl + " - " + e.getMessage());
+                        log.error("[ScraperEngine] Failed to scrape sub-page: {}", subPageUrl, e);
                     }
                 }
             }
