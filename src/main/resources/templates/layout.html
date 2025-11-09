@@ -87,6 +87,17 @@
         }
     };
 
+    window.buildBeautifyPayload = function (button) {
+        const dataset = button ? button.dataset : null;
+        const selector = dataset ? dataset.copyTarget : null;
+        const targetId = dataset && dataset.targetId ? dataset.targetId : '';
+        const element = selector ? document.querySelector(selector) : null;
+        return {
+            html: element ? (element.textContent || '') : '',
+            targetId
+        };
+    };
+
     // Copy text content
     window.copyText = function (button, text) {
         navigator.clipboard.writeText(text).then(() => {
