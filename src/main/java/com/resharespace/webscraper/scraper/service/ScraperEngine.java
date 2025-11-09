@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -68,6 +70,7 @@ public class ScraperEngine {
             checkCancellation(listener);
             log.info("[ScraperEngine] Using {} fetcher for {}", fetcher.getClass().getSimpleName(), url);
             String rawHtml = fetcher.fetch(url);
+            Document rawDocument = Jsoup.parse(rawHtml);
             listener.onStepCompleted(currentStep);
 
             OptionsConfig effectiveOptions = mergeOptions(recipe.getOptions(), overrides);
@@ -83,7 +86,7 @@ public class ScraperEngine {
             listener.onStepStarted(currentStep);
             progress.add(currentStep);
             checkCancellation(listener);
-            Map<String, Object> fields = fieldExtractionService.extractFields(processed.document(), recipe.getPage());
+            Map<String, Object> fields = fieldExtractionService.extractFields(rawDocument, recipe.getPage());
             listener.onStepCompleted(currentStep);
 
             Map<String, Object> structuredData = new HashMap<>(fields);
