@@ -1,5 +1,6 @@
 package com.browzwi.webscraper.service;
 
+import com.browzwi.webscraper.domain.ScrapeJob;
 import com.browzwi.webscraper.service.job.ScrapeQuartzJob;
 import java.util.UUID;
 import org.quartz.CronScheduleBuilder;
@@ -22,7 +23,7 @@ public class ScrapeJobSchedulerService {
         this.scheduler = scheduler;
     }
 
-    public void scheduleJob(com.browzwi.webscraper.domain.ScrapeJob job) {
+    public void scheduleJob(ScrapeJob job) {
         try {
             JobKey key = JobKey.jobKey(jobKey(job.getId()));
             JobDetail detail = JobBuilder.newJob(ScrapeQuartzJob.class)
@@ -37,6 +38,18 @@ public class ScrapeJobSchedulerService {
             scheduler.scheduleJob(detail, trigger);
         } catch (SchedulerException e) {
             throw new SchedulingException("Failed to schedule job " + job.getId(), e);
+        }
+    }
+
+    public void triggerJob(ScrapeJob job) {
+        try {
+            JobKey key = JobKey.jobKey(jobKey(job.getId()));
+            if (!scheduler.checkExists(key)) {
+                scheduleJob(job);
+            }
+            scheduler.triggerJob(key);
+        } catch (SchedulerException e) {
+            throw new SchedulingException("Failed to trigger job " + job.getId(), e);
         }
     }
 

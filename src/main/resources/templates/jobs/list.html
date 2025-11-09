@@ -66,8 +66,8 @@
                             <div class="flex items-center justify-end gap-2">
                                 <button class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                                         title="Run job now"
-                                        hx-post="/jobs/{id}/run"
-                                        hx-vals="js:{id: '[[${job.id}]]'}"
+                                        th:attr="hx-post=@{'/jobs/' + ${job.id} + '/run'}"
+                                        hx-swap="none"
                                         hx-confirm="Are you sure you want to run this job now?">
                                     <span class="material-symbols-outlined text-xl">play_arrow</span>
                                 </button>

@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-add-progress-json-to-scrape-result-data
+      author: codex
+      changes:
+        - addColumn:
+            tableName: scrape_result_data
+            columns:
+              - column:
+                  name: progress_json
+                  type: longtext

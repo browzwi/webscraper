@@ -29,6 +29,9 @@ public class ScrapeResultData {
     @Column(name = "data_json", nullable = false, columnDefinition = "longtext")
     private String dataJson;
 
+    @Column(name = "progress_json", columnDefinition = "longtext")
+    private String progressJson;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
@@ -50,6 +53,14 @@ public class ScrapeResultData {
 
     public void setDataJson(String dataJson) {
         this.dataJson = dataJson;
+    }
+
+    public String getProgressJson() {
+        return progressJson;
+    }
+
+    public void setProgressJson(String progressJson) {
+        this.progressJson = progressJson;
     }
 
     public Instant getCreatedAt() {

@@ -1,5 +1,6 @@
 package com.browzwi.webscraper.service.job;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.browzwi.webscraper.domain.ScrapeJob;
 import com.browzwi.webscraper.domain.ScrapeJobStatus;
@@ -88,6 +89,7 @@ public class ScrapeQuartzJob implements Job {
                                 return d;
                             });
                     data.setDataJson(objectMapper.writeValueAsString(result.structuredData()));
+                    data.setProgressJson(writeProgress(result.progressSteps()));
                     resultRepository.save(data);
 
                     target.setStatus(ScrapeTargetStatus.COMPLETED);
@@ -121,6 +123,18 @@ public class ScrapeQuartzJob implements Job {
         } catch (Exception ex) {
             log.warn("Unable to parse options JSON, proceeding with defaults", ex);
             return new OptionsConfig();
+        }
+    }
+
+    private String writeProgress(List<String> steps) {
+        if (steps == null || steps.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(steps);
+        } catch (JsonProcessingException ex) {
+            log.warn("Unable to serialize progress steps", ex);
+            return null;
         }
     }
 }

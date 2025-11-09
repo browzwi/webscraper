@@ -104,6 +104,12 @@ public class ScrapeJobService {
         return resultDataRepository.findByTargetId(targetId);
     }
 
+    public void runJobNow(UUID jobId) {
+        ScrapeJob job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found"));
+        schedulerService.triggerJob(job);
+    }
+
     private String writeOptions(OptionsConfig overrides) {
         if (overrides == null) {
             return null;

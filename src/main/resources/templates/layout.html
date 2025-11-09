@@ -179,16 +179,7 @@
         if (!swapped) {
             return;
         }
-        if (swapped.id === 'testResult') {
-            bindTabButtons(swapped);
-            return;
-        }
-        if (typeof swapped.querySelector === 'function') {
-            const nestedResult = swapped.querySelector('#testResult');
-            if (nestedResult) {
-                bindTabButtons(nestedResult);
-            }
-        }
+        bindTabButtons(swapped);
     });
 </script>
 </body>

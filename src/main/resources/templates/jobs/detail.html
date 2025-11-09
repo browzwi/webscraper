@@ -67,32 +67,41 @@
                         <td>
                             <span th:if="${target.status.name() == 'COMPLETED'}" class="badge badge-success">
                                 <span class="status-dot status-dot-success"></span>
-                                <span th:text="${target.status}"></span>
+                                <span th:text="${target.status.name()}"></span>
                             </span>
                             <span th:if="${target.status.name() == 'RUNNING'}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
                                 <span class="w-2 h-2 mr-2 bg-purple-400 rounded-full"></span>
-                                <span th:text="${target.status}"></span>
+                                <span th:text="${'PROCESSING'}"></span>
                             </span>
                             <span th:if="${target.status.name() == 'FAILED'}" class="badge badge-error">
                                 <span class="status-dot status-dot-error"></span>
-                                <span th:text="${target.status}"></span>
+                                <span th:text="${target.status.name()}"></span>
                             </span>
                             <span th:if="${target.status.name() == 'PENDING'}" class="badge badge-neutral">
                                 <span class="status-dot status-dot-warning"></span>
-                                <span th:text="${target.status}"></span>
+                                <span th:text="${'PENDING'}"></span>
                             </span>
                         </td>
                         <td class="text-white/70 text-xs" th:text="${target.startedAt != null ? #temporals.format(target.startedAt, 'yyyy-MM-dd HH:mm:ss') : '-'}"></td>
                         <td class="text-white/70 text-xs" th:text="${target.finishedAt != null ? #temporals.format(target.finishedAt, 'yyyy-MM-dd HH:mm:ss') : '-'}"></td>
                         <td class="text-red-400 text-xs max-w-xs truncate" th:text="${target.errorMessage}" th:title="${target.errorMessage}"></td>
                         <td class="text-right">
-                            <button class="btn btn-ghost text-xs px-3 py-1"
-                                    th:attr="hx-get=@{'/jobs/' + ${job.id} + '/targets/' + ${target.id}},
-                                             hx-target='#targetDetails',
-                                             hx-swap='innerHTML'">
-                                <span class="material-symbols-outlined text-sm">visibility</span>
-                                <span>View</span>
-                            </button>
+                            <div class="flex items-center justify-end gap-2">
+                                <button class="btn btn-ghost text-xs px-3 py-1"
+                                        th:attr="hx-get=@{'/jobs/' + ${job.id} + '/targets/' + ${target.id}},
+                                                 hx-target='#targetDetails',
+                                                 hx-swap='innerHTML'">
+                                    <span class="material-symbols-outlined text-sm">visibility</span>
+                                    <span>Results</span>
+                                </button>
+                                <button class="btn btn-ghost text-xs px-3 py-1"
+                                        th:attr="hx-get=@{'/jobs/' + ${job.id} + '/targets/' + ${target.id} + '?view=progress'},
+                                                 hx-target='#targetDetails',
+                                                 hx-swap='innerHTML'">
+                                    <span class="material-symbols-outlined text-sm">list</span>
+                                    <span>Progress</span>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     <tr th:if="${targets.isEmpty()}">
