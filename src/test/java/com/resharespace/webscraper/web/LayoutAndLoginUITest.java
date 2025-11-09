@@ -58,7 +58,7 @@ class LayoutAndLoginUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have consistent navigation across all pages")
     void shouldHaveConsistentNavigation() throws Exception {
         mockMvc.perform(get("/dashboard"))
@@ -71,7 +71,7 @@ class LayoutAndLoginUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have sticky header with backdrop blur")
     void shouldHaveStickyHeaderWithBackdropBlur() throws Exception {
         mockMvc.perform(get("/dashboard"))
@@ -81,7 +81,7 @@ class LayoutAndLoginUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should load Tailwind CSS stylesheet")
     void shouldLoadTailwindCssStylesheet() throws Exception {
         mockMvc.perform(get("/dashboard"))
@@ -90,7 +90,7 @@ class LayoutAndLoginUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should load HTMX library")
     void shouldLoadHtmxLibrary() throws Exception {
         mockMvc.perform(get("/dashboard"))
@@ -99,7 +99,7 @@ class LayoutAndLoginUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have CSRF token in layout")
     void shouldHaveCsrfTokenInLayout() throws Exception {
         mockMvc.perform(get("/dashboard"))
@@ -109,7 +109,7 @@ class LayoutAndLoginUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have HTMX loading indicator")
     void shouldHaveHtmxLoadingIndicator() throws Exception {
         mockMvc.perform(get("/dashboard"))
@@ -119,7 +119,7 @@ class LayoutAndLoginUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have utility functions for clipboard operations")
     void shouldHaveUtilityFunctionsForClipboard() throws Exception {
         mockMvc.perform(get("/dashboard"))
@@ -130,7 +130,7 @@ class LayoutAndLoginUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have active navigation highlighting")
     void shouldHaveActiveNavigationHighlighting() throws Exception {
         mockMvc.perform(get("/recipes"))

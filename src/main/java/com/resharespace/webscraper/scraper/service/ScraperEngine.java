@@ -41,35 +41,81 @@ public class ScraperEngine {
     }
 
     public ScrapeExecutionResult execute(RecipeConfig recipe, String url, OptionsConfig overrides) {
+        return execute(recipe, url, overrides, ProgressListener.noop());
+    }
+
+    public ScrapeExecutionResult execute(RecipeConfig recipe,
+                                         String url,
+                                         OptionsConfig overrides,
+                                         ProgressListener progressListener) {
         if (recipe == null) {
             throw new ScrapeException("Recipe is required");
         }
+        ProgressListener listener = progressListener == null ? ProgressListener.noop() : progressListener;
         List<String> progress = new ArrayList<>();
+        String currentStep = null;
         try {
-            progress.add("Starting scrape for " + url);
+            currentStep = "Starting scrape for " + url;
+            listener.onStepStarted(currentStep);
+            progress.add(currentStep);
+            checkCancellation(listener);
             PageFetcher fetcher = selectFetcher();
+            listener.onStepCompleted(currentStep);
+
+            currentStep = "Fetched raw HTML";
+            listener.onStepStarted(currentStep);
+            progress.add(currentStep);
+            checkCancellation(listener);
             log.info("[ScraperEngine] Using {} fetcher for {}", fetcher.getClass().getSimpleName(), url);
             String rawHtml = fetcher.fetch(url);
-            progress.add("Fetched raw HTML");
+            listener.onStepCompleted(currentStep);
+
             OptionsConfig effectiveOptions = mergeOptions(recipe.getOptions(), overrides);
+
+            currentStep = "Processed DOM and collected hrefs";
+            listener.onStepStarted(currentStep);
+            progress.add(currentStep);
+            checkCancellation(listener);
             ProcessedHtmlResult processed = htmlProcessingService.process(rawHtml, effectiveOptions, recipe.getPage());
-            progress.add("Processed DOM and collected hrefs");
+            listener.onStepCompleted(currentStep);
+
+            currentStep = "Extracted structured data";
+            listener.onStepStarted(currentStep);
+            progress.add(currentStep);
+            checkCancellation(listener);
             Map<String, Object> fields = fieldExtractionService.extractFields(processed.document(), recipe.getPage());
-            progress.add("Extracted structured data");
+            listener.onStepCompleted(currentStep);
 
             Map<String, Object> structuredData = new HashMap<>(fields);
             structuredData.put("hrefs", processed.hrefs());
             structuredData.put("url", url);
             structuredData.put("timestamp", Instant.now().toString());
 
+            currentStep = "Converted processed HTML to Markdown";
+            listener.onStepStarted(currentStep);
+            progress.add(currentStep);
+            checkCancellation(listener);
             String markdown = markdownConversionService.toMarkdown(processed.processedHtml());
-            progress.add("Converted processed HTML to Markdown");
+            listener.onStepCompleted(currentStep);
 
             return new ScrapeExecutionResult(rawHtml, processed.processedHtml(), markdown, structuredData, processed.hrefs(), progress);
+        } catch (ScrapeCancelledException ex) {
+            listener.onCancelled(currentStep);
+            log.info("[ScraperEngine] Scrape cancelled for {}", url);
+            throw ex;
         } catch (RuntimeException ex) {
+            if (currentStep != null) {
+                listener.onStepFailed(currentStep, ex.getMessage());
+            }
             progress.add("Failed: " + ex.getMessage());
             log.error("[ScraperEngine] Scrape failed for {}", url, ex);
             throw new ScrapeException("Failed to execute scraper", ex);
+        }
+    }
+
+    private void checkCancellation(ProgressListener listener) {
+        if (listener.isCancelled()) {
+            throw new ScrapeCancelledException("Scrape was cancelled");
         }
     }
 
@@ -102,6 +148,36 @@ public class ScraperEngine {
                                         Map<String, Object> structuredData,
                                         List<String> hrefs,
                                         List<String> progressSteps) {
+    }
+
+    public interface ProgressListener {
+
+        default void onStepStarted(String step) {
+        }
+
+        default void onStepCompleted(String step) {
+        }
+
+        default void onStepFailed(String step, String message) {
+        }
+
+        default boolean isCancelled() {
+            return false;
+        }
+
+        default void onCancelled(String currentStep) {
+        }
+
+        static ProgressListener noop() {
+            return new ProgressListener() {
+            };
+        }
+    }
+
+    public static class ScrapeCancelledException extends RuntimeException {
+        public ScrapeCancelledException(String message) {
+            super(message);
+        }
     }
 
     public static class ScrapeException extends RuntimeException {

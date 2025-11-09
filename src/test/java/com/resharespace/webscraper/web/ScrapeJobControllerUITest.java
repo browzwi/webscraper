@@ -4,8 +4,12 @@ import com.browzwi.webscraper.domain.ScrapeJob;
 import com.browzwi.webscraper.domain.ScrapeTarget;
 import com.browzwi.webscraper.domain.ScraperRecipe;
 import com.browzwi.webscraper.domain.ScrapeTargetStatus;
+import com.browzwi.webscraper.repository.ScraperRecipeRepository;
+import com.browzwi.webscraper.scraper.service.MarkdownConversionService;
 import com.browzwi.webscraper.service.ScrapeJobService;
 import com.browzwi.webscraper.service.ScraperRecipeService;
+import com.browzwi.webscraper.storage.FileStorageService;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,10 +36,19 @@ class ScrapeJobControllerUITest {
     private ScrapeJobService jobService;
 
     @MockBean
+    private ScraperRecipeRepository recipeRepository;
+
+    @MockBean
+    private FileStorageService storageService;
+
+    @MockBean
+    private MarkdownConversionService markdownConversionService;
+
+    @MockBean
     private ScraperRecipeService recipeService;
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render jobs list page")
     void shouldRenderJobsListPage() throws Exception {
         // Given
@@ -51,7 +64,7 @@ class ScrapeJobControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display status badges in jobs list")
     void shouldDisplayStatusBadgesInJobsList() throws Exception {
         // Given
@@ -66,12 +79,12 @@ class ScrapeJobControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render job form with recipe selection")
     void shouldRenderJobFormWithRecipeSelection() throws Exception {
         // Given
         ScraperRecipe recipe = createMockRecipe();
-        when(recipeService.list()).thenReturn(List.of(recipe));
+        when(recipeRepository.findAll()).thenReturn(List.of(recipe));
 
         // When & Then
         mockMvc.perform(get("/jobs/new"))
@@ -83,11 +96,11 @@ class ScrapeJobControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display processing overrides checkboxes")
     void shouldDisplayProcessingOverridesCheckboxes() throws Exception {
         // Given
-        when(recipeService.list()).thenReturn(List.of());
+        when(recipeRepository.findAll()).thenReturn(List.of());
 
         // When & Then
         mockMvc.perform(get("/jobs/new"))
@@ -98,7 +111,7 @@ class ScrapeJobControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render job detail page with stats")
     void shouldRenderJobDetailPageWithStats() throws Exception {
         // Given
@@ -119,7 +132,7 @@ class ScrapeJobControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display targets table with status indicators")
     void shouldDisplayTargetsTableWithStatusIndicators() throws Exception {
         // Given
@@ -138,7 +151,7 @@ class ScrapeJobControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have HTMX attributes for target details")
     void shouldHaveHtmxAttributesForTargetDetails() throws Exception {
         // Given
@@ -157,11 +170,11 @@ class ScrapeJobControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display cron expression examples")
     void shouldDisplayCronExpressionExamples() throws Exception {
         // Given
-        when(recipeService.list()).thenReturn(List.of());
+        when(recipeRepository.findAll()).thenReturn(List.of());
 
         // When & Then
         mockMvc.perform(get("/jobs/new"))
@@ -181,6 +194,7 @@ class ScrapeJobControllerUITest {
 
     private ScraperRecipe createMockRecipe() {
         ScraperRecipe recipe = new ScraperRecipe();
+        ReflectionTestUtils.setField(recipe, "id", UUID.randomUUID());
         recipe.setName("Test Recipe");
         recipe.setKey("test-recipe");
         return recipe;

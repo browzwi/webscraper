@@ -28,7 +28,7 @@ class SettingsControllerUITest {
     private SettingsService settingsService;
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render settings page with fetcher options")
     void shouldRenderSettingsPageWithFetcherOptions() throws Exception {
         // Given
@@ -45,7 +45,7 @@ class SettingsControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display both HtmlUnit and Playwright options")
     void shouldDisplayBothFetcherOptions() throws Exception {
         // Given
@@ -59,7 +59,7 @@ class SettingsControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have radio buttons for fetcher selection")
     void shouldHaveRadioButtonsForFetcherSelection() throws Exception {
         // Given
@@ -73,7 +73,7 @@ class SettingsControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display feature badges for fetchers")
     void shouldDisplayFeatureBadgesForFetchers() throws Exception {
         // Given
@@ -88,7 +88,7 @@ class SettingsControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have save and reset buttons")
     void shouldHaveSaveAndResetButtons() throws Exception {
         // Given
@@ -102,7 +102,7 @@ class SettingsControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display Material icons for settings")
     void shouldDisplayMaterialIconsForSettings() throws Exception {
         // Given
@@ -116,7 +116,7 @@ class SettingsControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should show selected fetcher type")
     void shouldShowSelectedFetcherType() throws Exception {
         // Given

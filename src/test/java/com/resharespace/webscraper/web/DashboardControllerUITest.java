@@ -4,6 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -11,14 +14,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(DashboardController.class)
+@Import(com.browzwi.webscraper.security.SecurityConfig.class)
 @DisplayName("Dashboard UI Tests")
 class DashboardControllerUITest {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    private UserDetailsService userDetailsService;
+
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render dashboard page with stats")
     void shouldRenderDashboardPageWithStats() throws Exception {
         // When & Then
@@ -38,7 +45,7 @@ class DashboardControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should contain dark theme classes")
     void shouldContainDarkThemeClasses() throws Exception {
         // When & Then
@@ -49,7 +56,7 @@ class DashboardControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should contain Material Symbols icons")
     void shouldContainMaterialSymbolsIcons() throws Exception {
         // When & Then
@@ -59,7 +66,7 @@ class DashboardControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have HTMX attributes for server time")
     void shouldHaveHtmxAttributesForServerTime() throws Exception {
         // When & Then

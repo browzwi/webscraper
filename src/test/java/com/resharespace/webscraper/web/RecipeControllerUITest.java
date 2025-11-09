@@ -1,7 +1,9 @@
 package com.browzwi.webscraper.web;
 
 import com.browzwi.webscraper.domain.ScraperRecipe;
+import com.browzwi.webscraper.repository.ScraperRecipeRepository;
 import com.browzwi.webscraper.service.ScraperRecipeService;
+import com.browzwi.webscraper.service.test.RecipeTestSessionService;
 import com.browzwi.webscraper.web.dto.RecipeForm;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,7 +14,9 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -30,13 +34,19 @@ class RecipeControllerUITest {
     @MockBean
     private ScraperRecipeService recipeService;
 
+    @MockBean
+    private ScraperRecipeRepository recipeRepository;
+
+    @MockBean
+    private RecipeTestSessionService recipeTestSessionService;
+
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render recipes list page")
     void shouldRenderRecipesListPage() throws Exception {
         // Given
         ScraperRecipe recipe = createMockRecipe();
-        when(recipeService.list()).thenReturn(List.of(recipe));
+        when(recipeRepository.findAll()).thenReturn(List.of(recipe));
 
         // When & Then
         mockMvc.perform(get("/recipes"))
@@ -48,7 +58,7 @@ class RecipeControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render recipe form with dark theme")
     void shouldRenderRecipeFormWithDarkTheme() throws Exception {
         // When & Then
@@ -61,13 +71,13 @@ class RecipeControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display recipe table with status badges")
     void shouldDisplayRecipeTableWithStatusBadges() throws Exception {
         // Given
         ScraperRecipe recipe = createMockRecipe();
         recipe.setEnabled(true);
-        when(recipeService.list()).thenReturn(List.of(recipe));
+        when(recipeRepository.findAll()).thenReturn(List.of(recipe));
 
         // When & Then
         mockMvc.perform(get("/recipes"))
@@ -77,11 +87,11 @@ class RecipeControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have HTMX search filter")
     void shouldHaveHtmxSearchFilter() throws Exception {
         // Given
-        when(recipeService.list()).thenReturn(List.of());
+        when(recipeRepository.findAll()).thenReturn(List.of());
 
         // When & Then
         mockMvc.perform(get("/recipes"))
@@ -91,13 +101,13 @@ class RecipeControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should render edit form with existing recipe data")
     void shouldRenderEditFormWithExistingRecipeData() throws Exception {
         // Given
         UUID recipeId = UUID.randomUUID();
         ScraperRecipe recipe = createMockRecipe();
-        when(recipeService.get(recipeId)).thenReturn(recipe);
+        when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(recipe));
 
         // When & Then
         mockMvc.perform(get("/recipes/" + recipeId))
@@ -107,7 +117,7 @@ class RecipeControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should display example recipes section")
     void shouldDisplayExampleRecipesSection() throws Exception {
         // When & Then
@@ -118,12 +128,12 @@ class RecipeControllerUITest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should have action buttons with Material icons")
     void shouldHaveActionButtonsWithMaterialIcons() throws Exception {
         // Given
         ScraperRecipe recipe = createMockRecipe();
-        when(recipeService.list()).thenReturn(List.of(recipe));
+        when(recipeRepository.findAll()).thenReturn(List.of(recipe));
 
         // When & Then
         mockMvc.perform(get("/recipes"))
@@ -134,6 +144,7 @@ class RecipeControllerUITest {
 
     private ScraperRecipe createMockRecipe() {
         ScraperRecipe recipe = new ScraperRecipe();
+        ReflectionTestUtils.setField(recipe, "id", UUID.randomUUID());
         recipe.setName("Test Recipe");
         recipe.setKey("test-recipe");
         recipe.setDescription("Test Description");

@@ -1,33 +1,72 @@
-<div th:fragment="test-result(structured, processedHtml, processedMarkdown, progressSteps)"
+<div th:fragment="test-result(structured, processedHtml, processedMarkdown, progressSteps, testStatus)"
      id="testResult"
      class="space-y-4">
-    <!-- Default placeholder when no test has been run -->
-    <div th:if="${structured == null}" class="card min-h-[200px]">
-        <div class="flex flex-col items-center justify-center py-12 text-zinc-400">
-            <span class="material-symbols-outlined text-5xl mb-3">terminal</span>
-            <p class="text-center">Run a test to preview structured data and processed HTML.</p>
-        </div>
-    </div>
-
-    <!-- Error display -->
-    <div th:if="${structured != null and #strings.startsWith(structured, 'Test failed')}"
-         class="card bg-red-500/20 border-red-500/30">
-        <div class="flex items-center gap-2 mb-2">
-            <span class="material-symbols-outlined text-red-400">error</span>
-            <h3 class="font-bold text-red-400">Test Failed</h3>
-        </div>
-        <p class="text-sm text-red-400" th:text="${structured}"></p>
-    </div>
-
-    <!-- Success display -->
-    <div th:if="${structured != null and !#strings.startsWith(structured, 'Test failed')}" class="space-y-4">
-        <!-- Success Message -->
-        <div class="card bg-green-500/20 border-green-500/30">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-green-400">check_circle</span>
-                <span class="text-green-400">Recipe test completed successfully!</span>
+    <th:block th:with="status=${testStatus != null ? testStatus : (structured == null ? 'IDLE' : (#strings.startsWith(structured, 'Test failed') ? 'FAILED' : (#strings.startsWith(structured, 'Test cancelled') ? 'CANCELLED' : 'COMPLETED')))}">
+        <!-- Default placeholder when no test has been run -->
+        <div th:if="${status == 'IDLE'}" class="card min-h-[200px]">
+            <div class="flex flex-col items-center justify-center py-12 text-zinc-400">
+                <span class="material-symbols-outlined text-5xl mb-3">terminal</span>
+                <p class="text-center">Run a test to preview structured data and processed HTML.</p>
             </div>
         </div>
+
+        <!-- Error display -->
+        <th:block th:if="${status == 'FAILED'}">
+            <div class="card bg-red-500/20 border-red-500/30">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-red-400">error</span>
+                    <h3 class="font-bold text-red-400">Test Failed</h3>
+                </div>
+                <p class="text-sm text-red-400" th:text="${structured}"></p>
+            </div>
+            <div th:if="${progressSteps != null}" class="card">
+                <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined">list</span>
+                    <span>Processing Steps</span>
+                </h3>
+                <ol class="space-y-2 text-sm text-zinc-300 bg-zinc-900/30 p-4 rounded-lg">
+                    <li th:each="step, iterStat : ${progressSteps}"
+                        class="flex items-start gap-2 py-2 border-b border-zinc-800/50 last:border-0">
+                        <span class="text-primary font-mono flex-shrink-0" th:text="${iterStat.count} + '.'"></span>
+                        <span class="flex-1" th:text="${step}"></span>
+                    </li>
+                </ol>
+            </div>
+        </th:block>
+
+        <!-- Cancelled display -->
+        <th:block th:if="${status == 'CANCELLED'}">
+            <div class="card bg-yellow-500/20 border-yellow-500/40">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-yellow-300">cancel</span>
+                    <h3 class="font-bold text-yellow-300">Test Cancelled</h3>
+                </div>
+                <p class="text-sm text-yellow-200" th:text="${structured}"></p>
+            </div>
+            <div th:if="${progressSteps != null}" class="card">
+                <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined">list</span>
+                    <span>Processing Steps</span>
+                </h3>
+                <ol class="space-y-2 text-sm text-zinc-300 bg-zinc-900/30 p-4 rounded-lg">
+                    <li th:each="step, iterStat : ${progressSteps}"
+                        class="flex items-start gap-2 py-2 border-b border-zinc-800/50 last:border-0">
+                        <span class="text-primary font-mono flex-shrink-0" th:text="${iterStat.count} + '.'"></span>
+                        <span class="flex-1" th:text="${step}"></span>
+                    </li>
+                </ol>
+            </div>
+        </th:block>
+
+        <!-- Success display -->
+        <div th:if="${status == 'COMPLETED'}" class="space-y-4">
+            <!-- Success Message -->
+            <div class="card bg-green-500/20 border-green-500/30">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-green-400">check_circle</span>
+                    <span class="text-green-400">Recipe test completed successfully!</span>
+                </div>
+            </div>
 
         <!-- Tab Navigation -->
         <div class="card" data-tab-group>
@@ -121,5 +160,5 @@
                 </div>
             </div>
         </div>
-    </div>
+    </th:block>
 </div>

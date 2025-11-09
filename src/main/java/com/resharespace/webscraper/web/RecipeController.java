@@ -4,15 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.browzwi.webscraper.domain.ScraperRecipe;
 import com.browzwi.webscraper.repository.ScraperRecipeRepository;
-import com.browzwi.webscraper.scraper.model.OptionsConfig;
-import com.browzwi.webscraper.scraper.model.RecipeConfig;
-import com.browzwi.webscraper.scraper.service.ScraperEngine;
 import com.browzwi.webscraper.service.ScraperRecipeService;
+import com.browzwi.webscraper.service.test.RecipeTestSession;
+import com.browzwi.webscraper.service.test.RecipeTestSessionService;
 import com.browzwi.webscraper.web.dto.RecipeExample;
 import com.browzwi.webscraper.web.dto.RecipeForm;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,8 +23,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -32,16 +36,16 @@ public class RecipeController {
 
     private final ScraperRecipeService recipeService;
     private final ScraperRecipeRepository recipeRepository;
-    private final ScraperEngine scraperEngine;
+    private final RecipeTestSessionService testSessionService;
     private final ObjectMapper objectMapper;
 
     public RecipeController(ScraperRecipeService recipeService,
                             ScraperRecipeRepository recipeRepository,
-                            ScraperEngine scraperEngine,
+                            RecipeTestSessionService testSessionService,
                             ObjectMapper objectMapper) {
         this.recipeService = recipeService;
         this.recipeRepository = recipeRepository;
-        this.scraperEngine = scraperEngine;
+        this.testSessionService = testSessionService;
         this.objectMapper = objectMapper;
     }
 
@@ -153,6 +157,7 @@ public class RecipeController {
         model.addAttribute("pageTitle", "New Recipe");
         model.addAttribute("recipe", new RecipeForm());
         model.addAttribute("formAction", "/recipes");
+        model.addAttribute("testStatus", null);
         return "recipes/form";
     }
 
@@ -163,6 +168,7 @@ public class RecipeController {
                     model.addAttribute("pageTitle", "Edit Recipe");
                     model.addAttribute("recipe", RecipeForm.fromEntity(recipe));
                     model.addAttribute("formAction", "/recipes/" + id);
+                    model.addAttribute("testStatus", null);
                     return "recipes/form";
                 })
                 .orElseGet(() -> {
@@ -178,6 +184,7 @@ public class RecipeController {
                              Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("formAction", "/recipes");
+            model.addAttribute("testStatus", null);
             return "recipes/form";
         }
         recipeService.create(form.toEntity());
@@ -193,6 +200,7 @@ public class RecipeController {
                                Model model) {
         if (result.hasErrors()) {
             model.addAttribute("formAction", "/recipes/" + id);
+            model.addAttribute("testStatus", null);
             return "recipes/form";
         }
         recipeService.update(id, form.toEntity());
@@ -201,25 +209,81 @@ public class RecipeController {
     }
 
     @PostMapping("/test")
-    public String testRecipe(@RequestParam("yamlContent") String yaml,
-                             @RequestParam("url") String url,
-                             Model model) throws JsonProcessingException {
-        try {
-            RecipeConfig config = recipeService.parse(yaml);
-            var result = scraperEngine.execute(config, url, new OptionsConfig());
-            model.addAttribute("structured", objectMapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(result.structuredData()));
-            model.addAttribute("processedHtml", result.processedHtml());
-            model.addAttribute("processedMarkdown", result.processedMarkdown());
-            model.addAttribute("rawHtml", result.rawHtml());
-            model.addAttribute("progressSteps", result.progressSteps());
-        } catch (Exception e) {
-            model.addAttribute("structured", "Test failed: " + e.getMessage());
-            model.addAttribute("processedHtml", "");
-            model.addAttribute("processedMarkdown", "");
-            model.addAttribute("rawHtml", "");
-            model.addAttribute("progressSteps", List.of("Failed: " + e.getMessage()));
+    @ResponseBody
+    public ResponseEntity<TestSessionResponse> startTest(@RequestParam("yamlContent") String yaml,
+                                                         @RequestParam("url") String url) {
+        if (url == null || url.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "URL is required for testing");
+        }
+        RecipeTestSession session = testSessionService.startSession(yaml, url.trim());
+        return ResponseEntity.ok(new TestSessionResponse(session.getId()));
+    }
+
+    @GetMapping("/test/{sessionId}/status")
+    @ResponseBody
+    public ResponseEntity<TestStatusResponse> getStatus(@PathVariable UUID sessionId) {
+        RecipeTestSession session = testSessionService.getSession(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
+        var steps = session.getSteps().stream()
+                .map(step -> new TestStatusResponse.TestStepView(step.getLabel(), step.getState(), step.getDetail()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new TestStatusResponse(session.getId(), session.getStatus(), steps,
+                session.getErrorMessage(), session.isCancellable(), session.isCancelRequested()));
+    }
+
+    @PostMapping("/test/{sessionId}/cancel")
+    @ResponseBody
+    public ResponseEntity<Void> cancel(@PathVariable UUID sessionId) {
+        testSessionService.cancel(sessionId);
+        return ResponseEntity.accepted().build();
+    }
+
+    @GetMapping("/test/{sessionId}/result")
+    public String getResult(@PathVariable UUID sessionId, Model model) throws JsonProcessingException {
+        RecipeTestSession session = testSessionService.getSession(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
+        model.addAttribute("testStatus", session.getStatus().name());
+        switch (session.getStatus()) {
+            case COMPLETED -> {
+                var result = session.getResult();
+                model.addAttribute("structured", objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(result.structuredData()));
+                model.addAttribute("processedHtml", result.processedHtml());
+                model.addAttribute("processedMarkdown", result.processedMarkdown());
+                model.addAttribute("rawHtml", result.rawHtml());
+                model.addAttribute("progressSteps", result.progressSteps());
+            }
+            case FAILED -> {
+                String message = session.getErrorMessage() != null ? session.getErrorMessage() : "Unknown failure";
+                model.addAttribute("structured", "Test failed: " + message);
+                model.addAttribute("processedHtml", "");
+                model.addAttribute("processedMarkdown", "");
+                model.addAttribute("rawHtml", "");
+                model.addAttribute("progressSteps", session.progressMessages());
+            }
+            case CANCELLED -> {
+                model.addAttribute("structured", "Test cancelled by user");
+                model.addAttribute("processedHtml", "");
+                model.addAttribute("processedMarkdown", "");
+                model.addAttribute("rawHtml", "");
+                model.addAttribute("progressSteps", session.progressMessages());
+            }
+            default -> throw new ResponseStatusException(HttpStatus.ACCEPTED, "Session still running");
         }
         return "fragments/recipe-test-result :: test-result";
+    }
+
+    public record TestSessionResponse(UUID sessionId) {
+    }
+
+    public record TestStatusResponse(UUID sessionId,
+                                     RecipeTestSession.Status status,
+                                     List<TestStepView> steps,
+                                     String errorMessage,
+                                     boolean cancellable,
+                                     boolean cancelRequested) {
+
+        public record TestStepView(String label, RecipeTestSession.StepState state, String detail) {
+        }
     }
 }

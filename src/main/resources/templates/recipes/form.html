@@ -55,33 +55,19 @@
 
         <!-- Example Recipes Section -->
         <section class="card">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
-                    <h2 class="text-white text-base font-bold flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary">lightbulb</span>
-                        Example Recipes
-                    </h2>
-                    <p class="text-xs text-zinc-400 mt-1">Preview, copy, or insert a curated best-practice configuration.</p>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary">lightbulb</span>
+                    <div>
+                        <h2 class="text-white text-base font-bold leading-tight">Example Recipes</h2>
+                        <p class="text-xs text-zinc-400">Jumpstart with curated YAML templates.</p>
+                    </div>
                 </div>
-                <div class="flex items-center text-xs text-zinc-400 gap-4">
-                    <span class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full bg-primary/30"></span>
-                        <span>Insert</span>
-                    </span>
-                    <span class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full bg-zinc-700"></span>
-                        <span>Copy</span>
-                    </span>
-                </div>
-            </div>
-            
-            <!-- Compact Trigger Button -->
-            <div class="mt-4 flex justify-center">
-                <button type="button" 
-                        class="btn btn-secondary"
+                <button type="button"
+                        class="btn btn-secondary flex items-center gap-1 sm:ml-auto"
                         data-modal-target="example-recipes-modal"
                         data-modal-action="open">
-                    <span class="material-symbols-outlined">visibility</span>
+                    <span class="material-symbols-outlined text-base">visibility</span>
                     <span>Browse Examples</span>
                 </button>
             </div>
@@ -98,20 +84,11 @@
                        placeholder="https://example.com"
                        class="form-input-dark flex-1 min-w-[200px]"/>
                 <button type="button"
-                        class="btn bg-zinc-800 text-white hover:bg-zinc-700"
-                        hx-post="/recipes/test"
-                        hx-target="#testResult"
-                        hx-swap="outerHTML"
-                        hx-include="[name='yamlContent'],#testUrl"
-                        hx-indicator="#testRecipeSpinner">
+                        id="testRecipeButton"
+                        class="btn bg-zinc-800 text-white hover:bg-zinc-700">
                     <span class="material-symbols-outlined text-lg">play_arrow</span>
                     <span>Test Recipe</span>
                 </button>
-                <div id="testRecipeSpinner"
-                     class="htmx-indicator flex items-center gap-2 text-xs text-zinc-400">
-                    <span class="inline-flex w-3 h-3 border-2 border-white/60 border-t-transparent rounded-full animate-spin"></span>
-                    <span>Testing...</span>
-                </div>
             </div>
         </div>
     </form>
@@ -122,10 +99,408 @@
             <span class="material-symbols-outlined">science</span>
             <span>Test Output</span>
         </h2>
-        <div th:replace="~{fragments/recipe-test-result :: test-result(structured=${structured}, processedHtml=${processedHtml}, processedMarkdown=${processedMarkdown}, progressSteps=${progressSteps})}"></div>
+        <div th:replace="~{fragments/recipe-test-result :: test-result(structured=${structured}, processedHtml=${processedHtml}, processedMarkdown=${processedMarkdown}, progressSteps=${progressSteps}, testStatus=${testStatus})}"></div>
     </section>
+
+    <!-- Recipe Test Status Modal -->
+    <div id="recipe-test-status-modal"
+         class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm"
+         data-modal-root
+         aria-hidden="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="w-full max-w-xl rounded-2xl border border-zinc-800 bg-zinc-900/95 shadow-2xl">
+                <div class="flex items-start justify-between border-b border-zinc-800 px-6 py-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-white text-lg font-bold">Recipe Test Progress</h3>
+                            <span data-status-pill
+                                  class="hidden rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary"></span>
+                        </div>
+                        <p class="text-xs text-zinc-400 mt-1" data-status-message>We are starting your recipe test.</p>
+                    </div>
+                    <button type="button"
+                            class="text-zinc-400 hover:text-white"
+                            data-modal-target="recipe-test-status-modal"
+                            data-modal-action="close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="px-6 py-5 space-y-4">
+                    <div data-status-error class="hidden rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs text-red-300"></div>
+                    <ol data-status-steps class="space-y-3"></ol>
+                </div>
+                <div class="flex items-center justify-between border-t border-zinc-800 px-6 py-4">
+                    <span class="text-xs text-zinc-500" data-status-hint>Cancel at any time if you need to adjust your YAML.</span>
+                    <div class="flex items-center gap-2">
+                        <button type="button"
+                                id="cancelTestButton"
+                                class="btn bg-red-600 text-white hover:bg-red-500">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                            <span>Cancel</span>
+                        </button>
+                        <button type="button"
+                                id="closeTestButton"
+                                class="btn btn-secondary hidden"
+                                data-modal-target="recipe-test-status-modal"
+                                data-modal-action="close">
+                            <span class="material-symbols-outlined text-sm">check</span>
+                            <span>Close</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Example Recipes Modal -->
     <th:block th:insert="~{fragments/example-recipes-modal :: example-recipes-modal(${recipeExamples})}"></th:block>
+
+    <script>
+        (function () {
+            const testButton = document.getElementById('testRecipeButton');
+            const yamlField = document.querySelector('[name="yamlContent"]');
+            const urlField = document.getElementById('testUrl');
+            const modalId = 'recipe-test-status-modal';
+            const stepsContainer = document.querySelector('[data-status-steps]');
+            const messageEl = document.querySelector('[data-status-message]');
+            const errorEl = document.querySelector('[data-status-error]');
+            const statusPill = document.querySelector('[data-status-pill]');
+            const hintEl = document.querySelector('[data-status-hint]');
+            const cancelButton = document.getElementById('cancelTestButton');
+            const closeButton = document.getElementById('closeTestButton');
+            const csrfTokenField = document.querySelector('input[name="_csrf"]');
+            const csrfToken = csrfTokenField ? csrfTokenField.value : null;
+            let activeSessionId = null;
+            let pollHandle = null;
+
+            const terminalSteps = [
+                'Starting scrape for',
+                'Fetched raw HTML',
+                'Processed DOM and collected hrefs',
+                'Extracted structured data',
+                'Converted processed HTML to Markdown'
+            ];
+
+            function setTestButtonBusy(busy) {
+                if (!testButton) {
+                    return;
+                }
+                testButton.disabled = busy;
+                testButton.classList.toggle('opacity-60', busy);
+                testButton.classList.toggle('cursor-not-allowed', busy);
+            }
+
+            function resetModal() {
+                clearTimeout(pollHandle);
+                pollHandle = null;
+                activeSessionId = null;
+                stepsContainer.innerHTML = '';
+                messageEl.textContent = 'We are starting your recipe test.';
+                if (errorEl) {
+                    errorEl.classList.add('hidden');
+                    errorEl.textContent = '';
+                }
+                if (statusPill) {
+                    statusPill.classList.add('hidden');
+                    statusPill.textContent = '';
+                }
+                if (hintEl) {
+                    hintEl.textContent = 'Cancel at any time if you need to adjust your YAML.';
+                }
+                cancelButton.disabled = false;
+                cancelButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                cancelButton.querySelector('span:last-child').textContent = 'Cancel';
+                closeButton.classList.add('hidden');
+            }
+
+            function iconForState(state) {
+                if (state === 'COMPLETED') {
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined text-green-400 text-lg mt-0.5';
+                    icon.textContent = 'check_circle';
+                    return icon;
+                }
+                if (state === 'FAILED') {
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined text-red-400 text-lg mt-0.5';
+                    icon.textContent = 'error';
+                    return icon;
+                }
+                if (state === 'CANCELLED') {
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined text-yellow-300 text-lg mt-0.5';
+                    icon.textContent = 'cancel';
+                    return icon;
+                }
+                if (state === 'RUNNING') {
+                    const spinner = document.createElement('span');
+                    spinner.className = 'inline-flex h-4 w-4 rounded-full border-2 border-primary/70 border-t-transparent animate-spin mt-1';
+                    return spinner;
+                }
+                const pending = document.createElement('span');
+                pending.className = 'mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-zinc-700';
+                return pending;
+            }
+
+            function renderSteps(data) {
+                if (!stepsContainer) {
+                    return;
+                }
+                stepsContainer.innerHTML = '';
+                const steps = data && Array.isArray(data.steps) ? data.steps : [];
+                steps.forEach((step, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-start gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3';
+
+                    const number = document.createElement('span');
+                    number.className = 'text-xs font-mono text-zinc-500 mt-1.5';
+                    number.textContent = String(index + 1).padStart(2, '0');
+
+                    const icon = iconForState(step.state);
+
+                    const content = document.createElement('div');
+                    content.className = 'flex-1';
+
+                    const title = document.createElement('p');
+                    title.className = 'text-sm text-white';
+                    title.textContent = step.label;
+                    content.appendChild(title);
+
+                    if (step.detail) {
+                        const detail = document.createElement('p');
+                        detail.className = 'text-xs text-zinc-400 mt-1';
+                        detail.textContent = step.detail;
+                        content.appendChild(detail);
+                    } else if (step.state === 'RUNNING') {
+                        const detail = document.createElement('p');
+                        detail.className = 'text-xs text-zinc-500 mt-1';
+                        detail.textContent = 'Processing...';
+                        content.appendChild(detail);
+                    }
+
+                    li.append(number, icon, content);
+                    stepsContainer.appendChild(li);
+                });
+            }
+
+            function applyStatusPill(status) {
+                if (!statusPill) {
+                    return;
+                }
+                const statusMap = {
+                    PENDING: { text: 'Pending', classes: 'bg-zinc-800 text-zinc-300' },
+                    RUNNING: { text: 'Running', classes: 'bg-primary/20 text-primary' },
+                    COMPLETED: { text: 'Completed', classes: 'bg-green-500/20 text-green-300' },
+                    FAILED: { text: 'Failed', classes: 'bg-red-500/20 text-red-300' },
+                    CANCELLED: { text: 'Cancelled', classes: 'bg-yellow-500/20 text-yellow-200' }
+                };
+                const config = statusMap[status] || statusMap.PENDING;
+                statusPill.className = `rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${config.classes}`;
+                statusPill.textContent = config.text;
+                statusPill.classList.remove('hidden');
+            }
+
+            function renderSession(data) {
+                if (!data) {
+                    return;
+                }
+                applyStatusPill(data.status);
+                renderSteps(data);
+                if (errorEl) {
+                    if (data.errorMessage) {
+                        errorEl.textContent = data.errorMessage;
+                        errorEl.classList.remove('hidden');
+                    } else {
+                        errorEl.classList.add('hidden');
+                        errorEl.textContent = '';
+                    }
+                }
+                if (messageEl) {
+                    const summaries = {
+                        PENDING: 'Preparing your recipe test session...',
+                        RUNNING: data.cancelRequested ? 'Cancelling recipe test...' : 'Processing the recipe and updating steps in real time.',
+                        COMPLETED: 'Recipe test finished. Review the output below.',
+                        FAILED: 'Recipe test encountered an error. Review the details below.',
+                        CANCELLED: 'Recipe test was cancelled.'
+                    };
+                    messageEl.textContent = summaries[data.status] || summaries.PENDING;
+                }
+                if (hintEl) {
+                    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(data.status)) {
+                        hintEl.textContent = 'You can close this dialog to continue refining your recipe.';
+                    } else {
+                        hintEl.textContent = data.cancelRequested ? 'Hang tight while we stop the current run.' : 'Cancel at any time if you need to adjust your YAML.';
+                    }
+                }
+                if (cancelButton) {
+                    const cancellable = Boolean(data.cancellable) && !data.cancelRequested;
+                    cancelButton.disabled = !cancellable;
+                    cancelButton.classList.toggle('opacity-60', !cancellable);
+                    cancelButton.classList.toggle('cursor-not-allowed', !cancellable);
+                    cancelButton.querySelector('span:last-child').textContent = data.cancelRequested ? 'Cancelling' : 'Cancel';
+                }
+                if (closeButton) {
+                    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(data.status)) {
+                        closeButton.classList.remove('hidden');
+                    }
+                }
+            }
+
+            async function pollStatus() {
+                if (!activeSessionId) {
+                    return;
+                }
+                try {
+                    const response = await fetch(`/recipes/test/${activeSessionId}/status`, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch status');
+                    }
+                    const data = await response.json();
+                    renderSession(data);
+                    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(data.status)) {
+                        setTestButtonBusy(false);
+                        await fetchResult();
+                        return;
+                    }
+                } catch (error) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Unable to refresh status. Retrying...';
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+                pollHandle = window.setTimeout(pollStatus, 1200);
+            }
+
+            async function fetchResult() {
+                if (!activeSessionId) {
+                    return;
+                }
+                try {
+                    const response = await fetch(`/recipes/test/${activeSessionId}/result`, {
+                        headers: { 'HX-Request': 'true' }
+                    });
+                    if (response.status === 202) {
+                        pollHandle = window.setTimeout(fetchResult, 800);
+                        return;
+                    }
+                    if (!response.ok) {
+                        throw new Error('Failed to load test result');
+                    }
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const replacement = doc.querySelector('#testResult');
+                    const target = document.getElementById('testResult');
+                    if (replacement && target) {
+                        target.replaceWith(replacement);
+                        if (typeof bindTabButtons === 'function') {
+                            bindTabButtons(replacement);
+                        }
+                    }
+                } catch (error) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Unable to load the latest test output.';
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            }
+
+            async function startTest() {
+                if (!yamlField || !urlField) {
+                    return;
+                }
+                resetModal();
+                setTestButtonBusy(true);
+                const urlValue = urlField.value.trim();
+                const initialSteps = terminalSteps.map((label, index) => ({
+                    label: index === 0 ? `${label} ${urlValue || ''}`.trim() : label,
+                    state: 'PENDING'
+                }));
+                renderSession({
+                    status: 'PENDING',
+                    steps: initialSteps,
+                    cancellable: true,
+                    cancelRequested: false
+                });
+                toggleModal(modalId, 'open');
+                const formData = new FormData();
+                formData.append('yamlContent', yamlField.value);
+                formData.append('url', urlValue);
+                try {
+                    const response = await fetch('/recipes/test', {
+                        method: 'POST',
+                        body: formData,
+                        headers: csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : undefined
+                    });
+                    if (!response.ok) {
+                        throw new Error(await response.text() || 'Failed to start test');
+                    }
+                    const payload = await response.json();
+                    activeSessionId = payload.sessionId;
+                    pollStatus();
+                } catch (error) {
+                    setTestButtonBusy(false);
+                    if (errorEl) {
+                        errorEl.textContent = 'Unable to start test: ' + (error.message || 'Unknown error');
+                        errorEl.classList.remove('hidden');
+                    }
+                    cancelButton.disabled = true;
+                    cancelButton.classList.add('opacity-60', 'cursor-not-allowed');
+                    closeButton.classList.remove('hidden');
+                }
+            }
+
+            async function cancelTest() {
+                if (!activeSessionId || cancelButton.disabled) {
+                    return;
+                }
+                cancelButton.disabled = true;
+                cancelButton.classList.add('opacity-60', 'cursor-not-allowed');
+                cancelButton.querySelector('span:last-child').textContent = 'Cancelling';
+                try {
+                    await fetch(`/recipes/test/${activeSessionId}/cancel`, {
+                        method: 'POST',
+                        headers: csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : undefined
+                    });
+                } catch (error) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Unable to cancel right now. We will keep trying.';
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            }
+
+            if (testButton) {
+                testButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    startTest();
+                });
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    cancelTest();
+                });
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('click', () => {
+                    setTestButtonBusy(false);
+                    resetModal();
+                });
+            }
+
+            document.addEventListener('click', (event) => {
+                const target = event.target.closest('[data-modal-action="close"][data-modal-target="recipe-test-status-modal"]');
+                if (target) {
+                    setTestButtonBusy(false);
+                    resetModal();
+                }
+            });
+        })();
+    </script>
 </main>
 </html>
