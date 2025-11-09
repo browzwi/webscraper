@@ -14,8 +14,10 @@ import com.browzwi.webscraper.web.dto.JobForm;
 import jakarta.validation.Valid;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -115,28 +117,67 @@ public class ScrapeJobController {
                                 Model model) {
         jobService.getJob(jobId);
         ScrapeTarget target = jobService.getTarget(targetId);
-        Optional<ScrapeResultData> result = jobService.findResult(targetId);
-        String structured = result.map(r -> prettyJson(r.getDataJson())).orElse(null);
-        List<String> progressSteps = result.map(ScrapeResultData::getProgressJson)
-                .map(this::readProgress)
-                .orElseGet(Collections::emptyList);
+        Optional<ScrapeResultData> resultOpt = jobService.findResult(targetId);
+        
+        String structured = null;
+        String processedHtml = null;
+        String processedMarkdown = null;
+        List<String> progressSteps = Collections.emptyList();
+        boolean isMultiPage = false;
+        java.util.Map<String, Object> pageResults = new java.util.LinkedHashMap<>();
+        
+        if (resultOpt.isPresent()) {
+            ScrapeResultData result = resultOpt.get();
+            structured = prettyJson(result.getDataJson());
+            progressSteps = readProgress(result.getProgressJson());
+            
+            // Detect if this is a multi-page result by checking for nested structure
+            // that would contain multiple page results
+            if (result.getDataJson() != null && 
+                (result.getDataJson().contains("\"pageResults\"") || result.getDataJson().contains("combinedStructuredData"))) {
+                isMultiPage = true;
+                
+                // Parse the multi-page result JSON to extract individual page details
+                try {
+                    // We'll need to pass the processed data as a map for the template
+                    // For now, the structured data will contain the combined data
+                    // and we'll add a flag to indicate it's multipage
+                    pageResults = objectMapper.readValue(result.getDataJson(), 
+                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+                } catch (Exception e) {
+                    log.warn("Could not parse multi-page result JSON", e);
+                    isMultiPage = false;
+                }
+            }
+        }
+        
         String rawHtml = storageService.loadRawHtml(jobId, targetId);
-        String processedHtml = storageService.loadProcessedHtml(jobId, targetId);
-        String processedMarkdown = processedHtml != null && !processedHtml.isBlank()
-                ? markdownConversionService.toMarkdown(processedHtml)
-                : null;
+        if (!isMultiPage) {
+            processedHtml = storageService.loadProcessedHtml(jobId, targetId);
+            processedMarkdown = processedHtml != null && !processedHtml.isBlank()
+                    ? markdownConversionService.toMarkdown(processedHtml)
+                    : null;
+        } else {
+            // For multi-page results, we don't have a single processed HTML
+            processedHtml = null;
+            processedMarkdown = null;
+        }
+        
         model.addAttribute("target", target);
         model.addAttribute("structured", structured);
         model.addAttribute("rawHtml", rawHtml);
         model.addAttribute("processedHtml", processedHtml);
         model.addAttribute("processedMarkdown", processedMarkdown);
         model.addAttribute("progressSteps", progressSteps);
-        model.addAttribute("hasResult", result.isPresent());
+        model.addAttribute("isMultiPage", isMultiPage);
+        model.addAttribute("pageResults", pageResults); // For multi-page display
+        
+        model.addAttribute("hasResult", resultOpt.isPresent());
         model.addAttribute("hasRawHtml", rawHtml != null && !rawHtml.isBlank());
         model.addAttribute("hasProcessedHtml", processedHtml != null && !processedHtml.isBlank());
         model.addAttribute("hasMarkdown", processedMarkdown != null && !processedMarkdown.isBlank());
         model.addAttribute("hasProgress", !progressSteps.isEmpty());
-        model.addAttribute("activeTab", resolveActiveTab(view, result.isPresent(), processedHtml, processedMarkdown,
+        model.addAttribute("activeTab", resolveActiveTab(view, resultOpt.isPresent(), processedHtml, processedMarkdown,
                 !progressSteps.isEmpty(), rawHtml));
         return "jobs/target-details :: content";
     }

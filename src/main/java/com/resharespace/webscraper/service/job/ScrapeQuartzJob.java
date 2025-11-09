@@ -13,6 +13,7 @@ import com.browzwi.webscraper.repository.ScrapeTargetRepository;
 import com.browzwi.webscraper.scraper.model.OptionsConfig;
 import com.browzwi.webscraper.scraper.model.RecipeConfig;
 import com.browzwi.webscraper.scraper.service.ScraperEngine;
+import com.browzwi.webscraper.scraper.service.ScraperEngine.ProgressListener;
 import com.browzwi.webscraper.storage.FileStorageService;
 import com.browzwi.webscraper.service.ScraperRecipeService;
 import java.time.Instant;
@@ -75,22 +76,41 @@ public class ScrapeQuartzJob implements Job {
                 target.setStartedAt(Instant.now());
                 targetRepository.save(target);
                 try {
-                    var result = scraperEngine.execute(recipeConfig, target.getUrl(), overrides);
-                    storageService.storeRawHtml(job.getId(), target.getId(), result.rawHtml());
-                    storageService.storeProcessedHtml(job.getId(), target.getId(), result.processedHtml());
-                    target.setResultPath(storageService.resolveTargetDir(job.getId(), target.getId()).toString());
-                    target.setRawFileName("raw.html");
-                    target.setProcessedFileName("processed.html");
+                    // Check if recipe has sub-pages for multi-page scraping
+                    if (recipeConfig.getPage().getSubPages() != null && !recipeConfig.getPage().getSubPages().isEmpty()) {
+                        // Handle multi-page scraping
+                        var multiResult = scraperEngine.executeMultiPage(recipeConfig, target.getUrl(), overrides, ProgressListener.noop());
+                        // For multi-page results, we'll store the combined structured data for now
+                        // Detailed per-page storage would require additional schema changes
+                        
+                        storageService.storeRawHtml(job.getId(), target.getId(), ""); // Multi-page doesn't have a single raw HTML
+                        storageService.storeProcessedHtml(job.getId(), target.getId(), ""); // Multi-page doesn't have a single processed HTML
 
-                    ScrapeResultData data = resultRepository.findByTargetId(target.getId())
-                            .orElseGet(() -> {
-                                ScrapeResultData d = new ScrapeResultData();
-                                d.setTarget(target);
-                                return d;
-                            });
-                    data.setDataJson(objectMapper.writeValueAsString(result.structuredData()));
-                    data.setProgressJson(writeProgress(result.progressSteps()));
-                    resultRepository.save(data);
+                        ScrapeResultData data = resultRepository.findByTargetId(target.getId())
+                                .orElseGet(() -> {
+                                    ScrapeResultData d = new ScrapeResultData();
+                                    d.setTarget(target);
+                                    return d;
+                                });
+                        data.setDataJson(objectMapper.writeValueAsString(multiResult.combinedStructuredData()));
+                        data.setProgressJson(writeProgress(multiResult.progressSteps()));
+                        resultRepository.save(data);
+                    } else {
+                        // Handle single-page scraping
+                        var result = scraperEngine.execute(recipeConfig, target.getUrl(), overrides, ProgressListener.noop());
+                        storageService.storeRawHtml(job.getId(), target.getId(), result.rawHtml());
+                        storageService.storeProcessedHtml(job.getId(), target.getId(), result.processedHtml());
+
+                        ScrapeResultData data = resultRepository.findByTargetId(target.getId())
+                                .orElseGet(() -> {
+                                    ScrapeResultData d = new ScrapeResultData();
+                                    d.setTarget(target);
+                                    return d;
+                                });
+                        data.setDataJson(objectMapper.writeValueAsString(result.structuredData()));
+                        data.setProgressJson(writeProgress(result.progressSteps()));
+                        resultRepository.save(data);
+                    }
 
                     target.setStatus(ScrapeTargetStatus.COMPLETED);
                     target.setFinishedAt(Instant.now());

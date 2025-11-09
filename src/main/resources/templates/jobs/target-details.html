@@ -116,7 +116,8 @@
                         <div class="flex items-center justify-between">
                             <h3 class="text-white font-bold flex items-center gap-2">
                                 <span class="material-symbols-outlined">data_object</span>
-                                <span>Extracted Data</span>
+                                <span th:if="${!isMultiPage}">Extracted Data</span>
+                                <span th:if="${isMultiPage}">Combined Extracted Data (Multi-Page)</span>
                             </h3>
                             <button type="button"
                                     class="btn btn-secondary text-xs"
@@ -126,7 +127,27 @@
                                 <span>Copy JSON</span>
                             </button>
                         </div>
-                        <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                        
+                        <!-- For multi-page results, show individual pages -->
+                        <div th:if="${isMultiPage and pageResults != null and pageResults.size() > 0}" class="space-y-4">
+                            <div th:each="pageKey, iterStat : ${pageResults.entrySet()}" 
+                                 class="border border-zinc-800 bg-zinc-900/40 rounded-xl p-4">
+                                <details th:attr="open=${iterStat.index == 0}">
+                                    <summary class="cursor-pointer text-sm font-semibold text-zinc-300 p-2 rounded-lg hover:bg-zinc-800/50">
+                                        <span class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-sm">code</span>
+                                            <span th:text="${pageKey.key == 'combinedStructuredData' ? 'Combined Data' : pageKey.key}"></span>
+                                        </span>
+                                    </summary>
+                                    <pre class="mt-3 bg-black/40 text-zinc-200 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-sm"
+                                         th:text="${#objects.toJson(pageKey.value)}"></pre>
+                                </details>
+                            </div>
+                        </div>
+                        
+                        <!-- For single-page results, show the structured data -->
+                        <pre th:unless="${isMultiPage}"
+                             class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
                              th:id="${'structured-' + target.id}"
                              th:text="${structured}"></pre>
                     </div>
@@ -137,8 +158,9 @@
                 </div>
 
                 <div id="tab-html" class="tab-content"
+                     th:if="${hasProcessedHtml or isMultiPage}"
                      th:classappend="${active == 'tab-html'} ? ' active' : ' hidden'">
-                    <div th:if="${hasProcessedHtml}" class="space-y-3">
+                    <div th:if="${!isMultiPage and hasProcessedHtml}" class="space-y-3">
                         <div class="flex items-center justify-between">
                             <h3 class="text-white font-bold flex items-center gap-2">
                                 <span class="material-symbols-outlined">code</span>
@@ -166,16 +188,56 @@
                              th:id="${'processed-' + target.id}"
                              th:text="${processedHtml}"></pre>
                     </div>
-                    <div th:unless="${hasProcessedHtml}" class="text-sm text-zinc-400 flex items-center gap-2">
+                    
+                    <!-- Multi-page HTML display -->
+                    <div th:if="${isMultiPage}" class="space-y-5">
+                        <div class="text-sm text-zinc-300 mb-3">
+                            <p>This is a multi-page scrape. Each page result is shown below:</p>
+                        </div>
+                        <div th:each="pageResultEntry : ${pageResults.entrySet()}"
+                             th:unless="${pageResultEntry.key == 'combinedStructuredData'}" 
+                             class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h4 class="text-white font-semibold flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm">code</span>
+                                        <span th:text="${pageResultEntry.key == 'main' ? 'Main Page' : pageResultEntry.key}"></span>
+                                    </h4>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                            class="btn btn-secondary text-xs"
+                                            th:attr="onclick=${'copyFromElement(this, \'#multiProcessedHtml_' + pageResultEntry.key + '\')'}">
+                                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                                        <span>Copy HTML</span>
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-primary text-xs"
+                                            hx-post="/utils/beautify"
+                                            hx-swap="outerHTML"
+                                            th:attr="data-copy-target=${'#multiProcessedHtml_' + pageResultEntry.key}, data-target-id=${'multiProcessedHtml_' + pageResultEntry.key}, hx-target=${'#multiProcessedHtml_' + pageResultEntry.key}">
+                                        <span class="material-symbols-outlined text-sm">auto_fix</span>
+                                        <span>Beautify</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <pre th:attr="id=${'multiProcessedHtml_' + pageResultEntry.key}"
+                                 class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                                 th:text="${pageResultEntry.value?.processedHtml}"></pre>
+                        </div>
+                    </div>
+                    
+                    <div th:unless="${hasProcessedHtml and !isMultiPage}" class="text-sm text-zinc-400 flex items-center gap-2">
                         <span class="material-symbols-outlined text-base">hourglass_empty</span>
-                        <span>Processed HTML will be available once the scrape completes.</span>
+                        <span th:if="${!isMultiPage}">Processed HTML will be available once the scrape completes.</span>
+                        <span th:if="${isMultiPage}">Multi-page HTML results are displayed above.</span>
                     </div>
                 </div>
 
                 <div id="tab-markdown" class="tab-content"
-                     th:if="${hasMarkdown}"
+                     th:if="${hasMarkdown or (isMultiPage and pageResults)}"
                      th:classappend="${active == 'tab-markdown'} ? ' active' : ' hidden'">
-                    <div class="space-y-3">
+                    <div th:if="${!isMultiPage and hasMarkdown}" class="space-y-3">
                         <div class="flex items-center justify-between">
                             <h3 class="text-white font-bold flex items-center gap-2">
                                 <span class="material-symbols-outlined">article</span>
@@ -193,12 +255,45 @@
                              th:id="${'markdown-' + target.id}"
                              th:text="${processedMarkdown}"></pre>
                     </div>
+                    
+                    <!-- Multi-page Markdown display -->
+                    <div th:if="${isMultiPage}" class="space-y-5">
+                        <div class="text-sm text-zinc-300 mb-3">
+                            <p>This is a multi-page scrape. Each page's markdown result is shown below:</p>
+                        </div>
+                        <div th:each="pageResultEntry : ${pageResults.entrySet()}"
+                             th:unless="${pageResultEntry.key == 'combinedStructuredData'}"
+                             th:with="hasMarkdownContent=${pageResultEntry.value?.processedMarkdown != null and #strings.length(pageResultEntry.value?.processedMarkdown) > 0}"
+                             th:if="${hasMarkdownContent}"
+                             class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h4 class="text-white font-semibold flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">article</span>
+                                    <span th:text="${pageResultEntry.key == 'main' ? 'Main Page' : pageResultEntry.key}"></span>
+                                </h4>
+                                <button type="button"
+                                        class="btn btn-secondary text-xs"
+                                        th:attr="onclick=${'copyFromElement(this, \'#multiMarkdown_' + pageResultEntry.key + '\')'}">
+                                    <span class="material-symbols-outlined text-sm">content_copy</span>
+                                    <span>Copy Markdown</span>
+                                </button>
+                            </div>
+                            <pre th:attr="id=${'multiMarkdown_' + pageResultEntry.key}"
+                                 class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-80 scrollbar-dark font-mono text-xs"
+                                 th:text="${pageResultEntry.value?.processedMarkdown}"></pre>
+                        </div>
+                        <div th:unless="${pageResults.entrySet().stream().anyMatch(e -> e.key != 'combinedStructuredData' and e.value?.processedMarkdown != null and #strings.length(e.value?.processedMarkdown) > 0)}"
+                             class="text-sm text-zinc-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base">article_off</span>
+                            <span>No markdown content was extracted from any of the pages.</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="tab-raw" class="tab-content"
-                     th:if="${hasRawHtml}"
+                     th:if="${hasRawHtml or (isMultiPage and pageResults)}"
                      th:classappend="${active == 'tab-raw'} ? ' active' : ' hidden'">
-                    <div class="space-y-3">
+                    <div th:if="${!isMultiPage and hasRawHtml}" class="space-y-3">
                         <div class="flex items-center justify-between">
                             <h3 class="text-white font-bold flex items-center gap-2">
                                 <span class="material-symbols-outlined">code_blocks</span>
@@ -215,6 +310,39 @@
                         <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
                              th:id="${'raw-' + target.id}"
                              th:text="${rawHtml}"></pre>
+                    </div>
+                    
+                    <!-- Multi-page Raw HTML display -->
+                    <div th:if="${isMultiPage}" class="space-y-5">
+                        <div class="text-sm text-zinc-300 mb-3">
+                            <p>This is a multi-page scrape. Each page's raw HTML is shown below:</p>
+                        </div>
+                        <div th:each="pageResultEntry : ${pageResults.entrySet()}"
+                             th:unless="${pageResultEntry.key == 'combinedStructuredData'}"
+                             th:with="hasRawContent=${pageResultEntry.value?.rawHtml != null and #strings.length(pageResultEntry.value?.rawHtml) > 0}"
+                             th:if="${hasRawContent}"
+                             class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h4 class="text-white font-semibold flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">code_blocks</span>
+                                    <span th:text="${pageResultEntry.key == 'main' ? 'Main Page' : pageResultEntry.key}"></span>
+                                </h4>
+                                <button type="button"
+                                        class="btn btn-secondary text-xs"
+                                        th:attr="onclick=${'copyFromElement(this, \'#multiRawHtml_' + pageResultEntry.key + '\')'}">
+                                    <span class="material-symbols-outlined text-sm">content_copy</span>
+                                    <span>Copy Raw HTML</span>
+                                </button>
+                            </div>
+                            <pre th:attr="id=${'multiRawHtml_' + pageResultEntry.key}"
+                                 class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                                 th:text="${pageResultEntry.value?.rawHtml}"></pre>
+                        </div>
+                        <div th:unless="${pageResults.entrySet().stream().anyMatch(e -> e.key != 'combinedStructuredData' and e.value?.rawHtml != null and #strings.length(e.value?.rawHtml) > 0)}"
+                             class="text-sm text-zinc-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base">code_off</span>
+                            <span>No raw HTML was stored for any of the pages.</span>
+                        </div>
                     </div>
                 </div>
 
