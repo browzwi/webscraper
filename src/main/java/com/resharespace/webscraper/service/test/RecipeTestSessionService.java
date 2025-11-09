@@ -16,6 +16,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for managing recipe test sessions that allow users to test scraper
+ * recipes against specific URLs. This service creates and tracks test sessions
+ * running in background threads with progress reporting.
+ *
+ * @since 1.0
+ */
 @Service
 public class RecipeTestSessionService {
 
@@ -26,6 +33,13 @@ public class RecipeTestSessionService {
     private final TaskExecutor taskExecutor;
     private final Map<UUID, RecipeTestSession> sessions = new ConcurrentHashMap<>();
 
+    /**
+     * Constructor for RecipeTestSessionService with required dependencies.
+     *
+     * @param recipeService service for parsing and validating scraper recipes
+     * @param scraperEngine engine for executing scraping operations
+     * @param taskExecutor executor for running tests in background threads
+     */
     public RecipeTestSessionService(ScraperRecipeService recipeService,
                                     ScraperEngine scraperEngine,
                                     @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
@@ -34,6 +48,15 @@ public class RecipeTestSessionService {
         this.taskExecutor = taskExecutor;
     }
 
+    /**
+     * Starts a new test session for the specified recipe and URL.
+     * The test runs in a background thread and the session object is returned
+     * immediately for tracking progress.
+     *
+     * @param yaml the YAML content of the scraper recipe to test
+     * @param url the URL to test the recipe against
+     * @return the test session object for tracking progress
+     */
     public RecipeTestSession startSession(String yaml, String url) {
         UUID sessionId = UUID.randomUUID();
         RecipeTestSession session = new RecipeTestSession(sessionId, url);
@@ -42,14 +65,32 @@ public class RecipeTestSessionService {
         return session;
     }
 
+    /**
+     * Gets an existing test session by its ID.
+     *
+     * @param sessionId the ID of the session to retrieve
+     * @return an optional containing the session if found, or empty if not found
+     */
     public Optional<RecipeTestSession> getSession(UUID sessionId) {
         return Optional.ofNullable(sessions.get(sessionId));
     }
 
+    /**
+     * Cancels a running test session by its ID.
+     *
+     * @param sessionId the ID of the session to cancel
+     */
     public void cancel(UUID sessionId) {
         getSession(sessionId).ifPresent(RecipeTestSession::requestCancel);
     }
 
+    /**
+     * Executes the actual test for a session in a background thread.
+     *
+     * @param session the test session to execute
+     * @param yaml the YAML content of the recipe to test
+     * @param url the URL to test against
+     */
     private void executeTest(RecipeTestSession session, String yaml, String url) {
         session.markRunning();
         try {
@@ -96,10 +137,20 @@ public class RecipeTestSessionService {
         }
     }
 
+    /**
+     * Progress listener implementation that updates the test session state.
+     *
+     * @since 1.0
+     */
     private static class SessionProgressListener implements ScraperEngine.ProgressListener {
 
         private final RecipeTestSession session;
 
+        /**
+         * Creates a new progress listener for the specified session.
+         *
+         * @param session the session to update with progress
+         */
         private SessionProgressListener(RecipeTestSession session) {
             this.session = session;
         }

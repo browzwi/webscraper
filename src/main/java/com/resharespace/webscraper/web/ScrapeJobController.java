@@ -47,6 +47,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+/**
+ * Controller for managing scraping jobs through CRUD operations and viewing results.
+ * Provides endpoints for creating, listing, running, and viewing details of scraping jobs
+ * and their targets.
+ *
+ * @since 1.0
+ */
 @Controller
 @RequestMapping("/jobs")
 @PreAuthorize("hasRole('ADMIN')")
@@ -64,6 +71,14 @@ public class ScrapeJobController {
     private final ScrapeTargetArchiveService archiveService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Constructor for ScrapeJobController with required dependencies.
+     *
+     * @param jobService service for managing scraping jobs
+     * @param recipeRepository repository for managing recipe entities
+     * @param archiveService service for creating archives of scraping results
+     * @param objectMapper object mapper for JSON processing
+     */
     public ScrapeJobController(ScrapeJobService jobService,
                                ScraperRecipeRepository recipeRepository,
                                ScrapeTargetArchiveService archiveService,
@@ -74,6 +89,13 @@ public class ScrapeJobController {
         this.objectMapper = objectMapper.copy().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
+    /**
+     * Handles requests to list all scraping jobs.
+     * Sets up the model with a list of jobs for the jobs list view.
+     *
+     * @param model the model to populate with job data
+     * @return the jobs list view name
+     */
     @GetMapping
     public String list(Model model) {
         List<ScrapeJob> jobs = jobService.listJobs();
@@ -85,12 +107,26 @@ public class ScrapeJobController {
         return "jobs/list";
     }
 
+    /**
+     * Handles requests to run a job immediately.
+     * Triggers the specified job to run bypassing its schedule.
+     *
+     * @param id the ID of the job to run
+     * @return an accepted response entity
+     */
     @PostMapping("/{id}/run")
     public ResponseEntity<Void> runJob(@PathVariable UUID id) {
         jobService.runJobNow(id);
         return ResponseEntity.accepted().build();
     }
 
+    /**
+     * Handles requests to view the form for creating a new scraping job.
+     * Sets up the model with a new job form and available recipes for the form view.
+     *
+     * @param model the model to populate with form data
+     * @return the jobs form view name
+     */
     @GetMapping("/new")
     public String newJob(Model model) {
         model.addAttribute("pageTitle", "New Job");
@@ -99,6 +135,17 @@ public class ScrapeJobController {
         return "jobs/form";
     }
 
+    /**
+     * Handles form submissions for creating a new scraping job.
+     * Validates the form and creates the job if valid, or returns the form with errors.
+     *
+     * @param form the job form data
+     * @param result the validation result
+     * @param authentication the authentication object for getting the current user
+     * @param redirectAttributes attributes for redirect after successful creation
+     * @param model the model to populate if validation fails
+     * @return redirect to jobs list if successful, or return to form if validation fails
+     */
     @PostMapping
     public String createJob(@Valid @ModelAttribute("job") JobForm form,
                             BindingResult result,
@@ -119,6 +166,14 @@ public class ScrapeJobController {
         return "redirect:/jobs";
     }
 
+    /**
+     * Handles requests to view the details of a specific scraping job.
+     * Sets up the model with job details and its associated targets for the detail view.
+     *
+     * @param id the ID of the job to view details for
+     * @param model the model to populate with job details
+     * @return the jobs detail view name
+     */
     @GetMapping("/{id}")
     public String jobDetail(@PathVariable UUID id, Model model) {
         ScrapeJob job = jobService.getJob(id);
@@ -139,6 +194,15 @@ public class ScrapeJobController {
         return "jobs/detail";
     }
 
+    /**
+     * Handles requests to view the details of a specific scraping target.
+     * Sets up the model with target details for the detail view fragment.
+     *
+     * @param jobId the ID of the parent job
+     * @param targetId the ID of the target to view details for
+     * @param model the model to populate with target details
+     * @return the target details template fragment
+     */
     @GetMapping("/{jobId}/targets/{targetId}")
     public String targetDetails(@PathVariable UUID jobId,
                                 @PathVariable UUID targetId,
@@ -170,6 +234,14 @@ public class ScrapeJobController {
         return "jobs/target-details :: content";
     }
 
+    /**
+     * Handles requests to download an archive of scraping results for a target.
+     * Returns the archive as a downloadable file.
+     *
+     * @param jobId the ID of the parent job
+     * @param targetId the ID of the target to download archive for
+     * @return a response entity containing the archive file
+     */
     @GetMapping("/{jobId}/targets/{targetId}/archive")
     public ResponseEntity<ByteArrayResource> downloadArchive(@PathVariable UUID jobId,
                                                               @PathVariable UUID targetId) {
@@ -191,9 +263,6 @@ public class ScrapeJobController {
 
     /**
      * Renders the HTMX-friendly modal displaying progress information for a scrape target.
-     *
-     * <p>Implementation rationale: delegates the markup to a Thymeleaf fragment so the client no
-     * longer mutates DOM nodes manually, aligning with the project's partial-rendering approach.</p>
      *
      * @param jobId identifier of the owning job
      * @param targetId identifier of the target whose progress is requested

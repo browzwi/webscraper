@@ -35,6 +35,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+/**
+ * Controller for managing scraper recipes through CRUD operations and testing.
+ * Provides endpoints for listing, creating, updating, and testing scraper recipes.
+ *
+ * @since 1.0
+ */
 @Controller
 @PreAuthorize("hasRole('ADMIN')")
 @RequestMapping("/recipes")
@@ -47,6 +53,14 @@ public class RecipeController {
     private final RecipeTestSessionService testSessionService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Constructor for RecipeController with required dependencies.
+     *
+     * @param recipeService service for managing scraper recipes
+     * @param recipeRepository repository for managing recipe entities
+     * @param testSessionService service for managing recipe test sessions
+     * @param objectMapper object mapper for JSON processing
+     */
     public RecipeController(ScraperRecipeService recipeService,
                             ScraperRecipeRepository recipeRepository,
                             RecipeTestSessionService testSessionService,
@@ -57,6 +71,13 @@ public class RecipeController {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Handles requests to list all scraper recipes.
+     * Sets up the model with the list of recipes for the list view.
+     *
+     * @param model the model to populate with recipe data
+     * @return the recipes list view name
+     */
     @GetMapping
     public String list(Model model) {
         List<ScraperRecipe> recipes = recipeRepository.findAll();
@@ -65,6 +86,11 @@ public class RecipeController {
         return "recipes/list";
     }
 
+    /**
+     * Provides a list of recipe examples that users can reference when creating recipes.
+     *
+     * @return a list of RecipeExample objects
+     */
     @ModelAttribute("recipeExamples")
     public List<RecipeExample> recipeExamples() {
         return List.of(
@@ -160,6 +186,13 @@ public class RecipeController {
         );
     }
 
+    /**
+     * Handles requests to view the form for creating a new recipe.
+     * Sets up the model with a new recipe form for the form view.
+     *
+     * @param model the model to populate with form data
+     * @return the recipes form view name
+     */
     @GetMapping("/new")
     public String createForm(Model model) {
         model.addAttribute("pageTitle", "New Recipe");
@@ -169,6 +202,15 @@ public class RecipeController {
         return "recipes/form";
     }
 
+    /**
+     * Handles requests to view the form for editing an existing recipe.
+     * Sets up the model with the recipe data for the form view.
+     *
+     * @param id the ID of the recipe to edit
+     * @param model the model to populate with recipe data
+     * @param redirectAttributes attributes for redirect in case of error
+     * @return the recipes form view name or redirect to recipes list if not found
+     */
     @GetMapping("/{id}")
     public String editForm(@PathVariable UUID id, Model model, RedirectAttributes redirectAttributes) {
         return recipeRepository.findById(id)
@@ -185,6 +227,16 @@ public class RecipeController {
                 });
     }
 
+    /**
+     * Handles form submissions for creating a new recipe.
+     * Validates the form and creates the recipe if valid, or returns the form with errors.
+     *
+     * @param form the recipe form data
+     * @param bindingResult the validation result
+     * @param redirectAttributes attributes for redirect after successful creation
+     * @param model the model to populate if validation fails
+     * @return redirect to recipes list if successful, or return to form if validation fails
+     */
     @PostMapping
     public String saveRecipe(@Valid @ModelAttribute("recipe") RecipeForm form,
                              BindingResult bindingResult,
@@ -200,6 +252,17 @@ public class RecipeController {
         return "redirect:/recipes";
     }
 
+    /**
+     * Handles form submissions for updating an existing recipe.
+     * Validates the form and updates the recipe if valid, or returns the form with errors.
+     *
+     * @param id the ID of the recipe to update
+     * @param form the recipe form data
+     * @param result the validation result
+     * @param redirectAttributes attributes for redirect after successful update
+     * @param model the model to populate if validation fails
+     * @return redirect to recipes list if successful, or return to form if validation fails
+     */
     @PostMapping("/{id}")
     public String updateRecipe(@PathVariable UUID id,
                                @Valid @ModelAttribute("recipe") RecipeForm form,
@@ -246,6 +309,17 @@ public class RecipeController {
         return ResponseEntity.accepted().build();
     }
 
+    /**
+     * Gets the results of a completed recipe test session.
+     * This method returns the test results as a template fragment.
+     *
+     * @param sessionId the ID of the test session to get results for
+     * @param pageKey the page key for multi-page scrapes (defaults to "main")
+     * @param model the model to populate with test results
+     * @return the test result template fragment
+     * @throws JsonProcessingException if there's an error processing JSON
+     * @throws ResponseStatusException if the session is not found or not completed
+     */
     @GetMapping("/test/{sessionId}/result")
     public String getResult(@PathVariable UUID sessionId, 
                            @RequestParam(value = "page", defaultValue = "main") String pageKey,
@@ -364,6 +438,13 @@ public class RecipeController {
         return "recipes/test-result :: result";
     }
 
+    /**
+     * Sanitizes a string for use as an HTML ID attribute.
+     * Replaces problematic characters with hyphens or removes them.
+     *
+     * @param input the input string to sanitize
+     * @return the sanitized string safe for HTML IDs
+     */
     private String sanitizeForHtmlId(String input) {
         if (input == null) {
             return "";
@@ -372,9 +453,26 @@ public class RecipeController {
         return input.replaceAll("[^a-zA-Z0-9_\\-]", "-");
     }
 
+    /**
+     * Record representing the response for starting a test session.
+     *
+     * @param sessionId the ID of the created test session
+     * @since 1.0
+     */
     public record TestSessionResponse(UUID sessionId) {
     }
 
+    /**
+     * Record representing the response for getting test session status.
+     *
+     * @param sessionId the ID of the test session
+     * @param status the current status of the test session
+     * @param steps the list of steps in the test session
+     * @param errorMessage the error message if the test failed
+     * @param cancellable whether the session can be cancelled
+     * @param cancelRequested whether cancellation has been requested
+     * @since 1.0
+     */
     public record TestStatusResponse(UUID sessionId,
                                      RecipeTestSession.Status status,
                                      List<TestStepView> steps,
@@ -382,6 +480,14 @@ public class RecipeController {
                                      boolean cancellable,
                                      boolean cancelRequested) {
 
+        /**
+         * Record representing the view of a test step.
+         *
+         * @param label the label of the test step
+         * @param state the state of the test step
+         * @param detail additional details about the test step
+         * @since 1.0
+         */
         public record TestStepView(String label, RecipeTestSession.StepState state, String detail) {
         }
     }

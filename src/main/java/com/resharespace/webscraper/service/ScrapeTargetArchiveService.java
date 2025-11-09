@@ -26,14 +26,10 @@ import org.springframework.stereotype.Service;
 
 /**
  * Builds downloadable web archives encapsulating the artefacts for a scrape target execution.
- *
- * <p>Architectural rationale: centralises archive generation so controllers remain focused on
- * orchestrating view rendering while this service composes filesystem artefacts and metadata into a
- * portable representation.
- *
- * <p>Key constraints: archives are emitted as ZIP streams with a <code>.zip</code> extension,
- * include a metadata XML descriptor, and embed artefacts under a randomly generated directory to
- * avoid collisions when jobs run repeatedly.
+ * Centralises archive generation so controllers remain focused on orchestrating view rendering
+ * while this service composes filesystem artefacts and metadata into a portable representation.
+ * Archives are emitted as ZIP streams with a .zip extension, include a metadata XML descriptor,
+ * and embed artefacts under a randomly generated directory to avoid collisions when jobs run repeatedly.
  *
  * @since 1.0
  */
@@ -54,9 +50,7 @@ public class ScrapeTargetArchiveService {
     /**
      * Determines whether an archive can be produced for the given target by checking that at least
      * one artefact (raw HTML, processed HTML, processed Markdown, per-page capture, or structured
-     * data) exists.
-     *
-     * <p>Implementation rationale: avoids surprising 404s by exposing the availability check to the
+     * data) exists. This avoids surprising 404s by exposing the availability check to the
      * controller before attempting archive generation.
      *
      * @param jobId identifier of the parent job whose filesystem directory is inspected
@@ -74,10 +68,8 @@ public class ScrapeTargetArchiveService {
 
     /**
      * Produces a zipped web archive containing scrape artefacts and an XML metadata descriptor.
-     *
-     * <p>Implementation rationale: uses UTF-8 encoded ZIP entries to ensure cross-platform
-     * compatibility and wraps IO failures in a dedicated runtime exception for the controller to
-     * translate into HTTP responses.
+     * Uses UTF-8 encoded ZIP entries to ensure cross-platform compatibility and wraps IO failures
+     * in a dedicated runtime exception for the controller to translate into HTTP responses.
      *
      * @param job job that triggered the scrape
      * @param target scrape target whose artefacts are requested

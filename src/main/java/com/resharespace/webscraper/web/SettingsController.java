@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+/**
+ * Controller for managing application settings through the web interface.
+ * Provides endpoints for viewing and updating application settings such as scraper fetcher type.
+ *
+ * @since 1.0
+ */
 @Controller
 @RequestMapping("/settings")
 @PreAuthorize("hasRole('ADMIN')")
@@ -19,10 +25,22 @@ public class SettingsController {
 
     private final SettingsService settingsService;
 
+    /**
+     * Constructor for SettingsController with required dependencies.
+     *
+     * @param settingsService service for managing application settings
+     */
     public SettingsController(SettingsService settingsService) {
         this.settingsService = settingsService;
     }
 
+    /**
+     * Handles requests to view the settings page.
+     * Sets up the model with current settings and available options for the settings view.
+     *
+     * @param model the model to populate with settings data
+     * @return the settings view name
+     */
     @GetMapping
     public String view(Model model) {
         SettingsForm form = new SettingsForm();
@@ -33,6 +51,14 @@ public class SettingsController {
         return "settings/index";
     }
 
+    /**
+     * Handles form submissions for updating application settings.
+     * Updates the settings and redirects back to the settings page.
+     *
+     * @param form the settings form data
+     * @param redirectAttributes attributes for redirect after successful update
+     * @return redirect to settings page
+     */
     @PostMapping
     public String update(@ModelAttribute("settings") SettingsForm form,
                          RedirectAttributes redirectAttributes) {

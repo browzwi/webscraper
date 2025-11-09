@@ -16,6 +16,14 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+/**
+ * Service for managing file storage of scraping artifacts including raw HTML,
+ * processed HTML, and Markdown conversions for both single and multi-page scrapes.
+ * This service provides methods for storing and retrieving scraping results
+ * organized by job and target IDs in a hierarchical directory structure.
+ *
+ * @since 1.0
+ */
 @Service
 public class FileStorageService {
 
@@ -49,9 +57,8 @@ public class FileStorageService {
 
     /**
      * Persists the Markdown conversion for a scrape target to make archive generation deterministic.
-     *
-     * <p>Implementation rationale: storing Markdown avoids repeated conversions during archive
-     * assembly while providing parity between single and multi-page scrapes.</p>
+     * Storing Markdown avoids repeated conversions during archive assembly while providing 
+     * parity between single and multi-page scrapes.
      *
      * @param jobId identifier of the owning job directory
      * @param targetId identifier of the scrape target directory

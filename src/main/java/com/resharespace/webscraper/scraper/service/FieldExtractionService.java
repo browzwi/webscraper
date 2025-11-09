@@ -14,11 +14,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for extracting structured data fields from HTML documents based on
+ * field configurations. This service processes CSS selectors and extracts
+ * content according to the specified data source type.
+ *
+ * @since 1.0
+ */
 @Service
 public class FieldExtractionService {
 
     private static final Logger log = LoggerFactory.getLogger(FieldExtractionService.class);
 
+    /**
+     * Extracts structured data fields from a document based on the specified page configuration.
+     *
+     * @param document the HTML document to extract from
+     * @param pageConfig the configuration defining which fields to extract
+     * @return a map of field names to extracted values
+     */
     public Map<String, Object> extractFields(Document document, PageConfig pageConfig) {
         Map<String, Object> results = new HashMap<>();
         if (pageConfig == null || pageConfig.getFields() == null) {
@@ -33,6 +47,14 @@ public class FieldExtractionService {
         return results;
     }
 
+    /**
+     * Extracts structured data fields from a document based on a list of field configurations.
+     * This method is used for extracting fields from sub-pages.
+     *
+     * @param document the HTML document to extract from
+     * @param fieldConfigs the list of field configurations to extract
+     * @return a map of field names to extracted values
+     */
     public Map<String, Object> extractFieldsFromConfig(Document document, List<FieldConfig> fieldConfigs) {
         Map<String, Object> results = new HashMap<>();
         if (fieldConfigs == null) {
@@ -47,6 +69,13 @@ public class FieldExtractionService {
         return results;
     }
 
+    /**
+     * Extracts a single value for the specified field from the document.
+     *
+     * @param document the HTML document to extract from
+     * @param field the field configuration to extract
+     * @return the extracted value, or null if not found
+     */
     private Object extractSingle(Document document, FieldConfig field) {
         for (String selector : field.getSelectors()) {
             Element element = document.select(selector).stream().findFirst().orElse(null);
@@ -64,6 +93,13 @@ public class FieldExtractionService {
         return null;
     }
 
+    /**
+     * Extracts multiple values for the specified field from the document.
+     *
+     * @param document the HTML document to extract from
+     * @param field the field configuration to extract
+     * @return a list of extracted values
+     */
     private List<String> extractMultiple(Document document, FieldConfig field) {
         List<String> values = new ArrayList<>();
         for (String selector : field.getSelectors()) {
@@ -84,6 +120,13 @@ public class FieldExtractionService {
         return values;
     }
 
+    /**
+     * Extracts a value from an element based on the field's source configuration.
+     *
+     * @param element the HTML element to extract from
+     * @param field the field configuration specifying how to extract
+     * @return the extracted value from the element
+     */
     private String extractValue(Element element, FieldConfig field) {
         DataSourceType source = field.getSource() == null ? DataSourceType.TEXT : field.getSource();
         return switch (source) {
@@ -93,6 +136,13 @@ public class FieldExtractionService {
         };
     }
 
+    /**
+     * Applies a regular expression pattern to the extracted value.
+     *
+     * @param value the original extracted value
+     * @param dataPattern the regular expression pattern to apply, or null if no pattern
+     * @return the original value if no pattern is specified, or the matched group if pattern matches
+     */
     private String applyPattern(String value, String dataPattern) {
         if (dataPattern == null || dataPattern.isBlank()) {
             return value;

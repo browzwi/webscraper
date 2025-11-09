@@ -27,6 +27,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Quartz job implementation that executes scraping operations for a specific job.
+ * This job processes all targets associated with a scraping job, executing the
+ * scraping recipe on each target URL and storing the results.
+ *
+ * @since 1.0
+ */
 @Component
 public class ScrapeQuartzJob implements Job {
 
@@ -40,6 +47,17 @@ public class ScrapeQuartzJob implements Job {
     private final FileStorageService storageService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Constructor for ScrapeQuartzJob with required dependencies.
+     *
+     * @param jobRepository repository for managing scraping jobs
+     * @param targetRepository repository for managing scraping targets
+     * @param resultRepository repository for managing scraping results
+     * @param recipeService service for managing scraper recipes
+     * @param scraperEngine engine for executing scraping operations
+     * @param storageService service for storing scraping artifacts
+     * @param objectMapper object mapper for JSON serialization/deserialization
+     */
     public ScrapeQuartzJob(ScrapeJobRepository jobRepository,
                            ScrapeTargetRepository targetRepository,
                            ScrapeResultDataRepository resultRepository,
@@ -146,6 +164,13 @@ public class ScrapeQuartzJob implements Job {
         }
     }
 
+    /**
+     * Reads and deserializes options configuration from JSON string.
+     * If the options JSON is null or blank, returns a default OptionsConfig.
+     *
+     * @param optionsJson the JSON string containing options configuration
+     * @return the deserialized OptionsConfig, or a default if parsing fails
+     */
     private OptionsConfig readOptions(String optionsJson) {
         if (optionsJson == null || optionsJson.isBlank()) {
             return new OptionsConfig();
@@ -158,6 +183,13 @@ public class ScrapeQuartzJob implements Job {
         }
     }
 
+    /**
+     * Serializes progress steps to JSON string for storage.
+     * Returns null if the steps list is null or empty.
+     *
+     * @param steps the list of progress steps to serialize
+     * @return the JSON string representation of the steps, or null if empty
+     */
     private String writeProgress(List<String> steps) {
         if (steps == null || steps.isEmpty()) {
             return null;

@@ -14,6 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Implementation of PageFetcher that uses Playwright to fetch and render HTML content.
+ * This fetcher provides full browser capabilities with JavaScript execution and
+ * dynamic content loading support.
+ *
+ * @since 1.0
+ */
 @Service
 public class PlaywrightFetcher implements PageFetcher {
 
@@ -22,6 +29,13 @@ public class PlaywrightFetcher implements PageFetcher {
     private final int timeoutMillis;
     private final String browser;
 
+    /**
+     * Constructor for PlaywrightFetcher with configuration parameters.
+     *
+     * @param headless whether to run the browser in headless mode
+     * @param timeoutMillis the timeout in milliseconds for page loading
+     * @param browser the browser type to use (chromium, firefox, or webkit)
+     */
     @Autowired
     public PlaywrightFetcher(@Value("${webscraper.fetcher.playwright.headless:true}") boolean headless,
                              @Value("${webscraper.fetcher.playwright.timeout:20000}") int timeoutMillis,
@@ -31,6 +45,14 @@ public class PlaywrightFetcher implements PageFetcher {
         this.browser = browser;
     }
 
+    /**
+     * Constructor for testing purposes.
+     *
+     * @param headless whether to run the browser in headless mode
+     * @param timeoutMillis the timeout in milliseconds for page loading
+     * @param browser the browser type to use (chromium, firefox, or webkit)
+     * @param testing flag to indicate testing mode
+     */
     protected PlaywrightFetcher(boolean headless, int timeoutMillis, String browser, boolean testing) {
         this.headless = headless;
         this.timeoutMillis = timeoutMillis;
@@ -60,6 +82,12 @@ public class PlaywrightFetcher implements PageFetcher {
         }
     }
 
+    /**
+     * Selects and launches the appropriate browser based on configuration.
+     *
+     * @param playwright the Playwright instance to use
+     * @return the launched browser instance
+     */
     private Browser selectBrowser(Playwright playwright) {
         BrowserType type = switch (browser.toLowerCase()) {
             case "firefox" -> playwright.firefox();

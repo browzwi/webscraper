@@ -11,6 +11,13 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Initializes or resets the development/test administrator password on application startup.
+ * This component runs only in dev and test profiles and allows setting a known
+ * admin password for development and testing purposes.
+ *
+ * @since 1.0
+ */
 @Component
 @Profile({"dev", "test"})
 public class DevAdminPasswordInitializer implements ApplicationRunner {
@@ -22,6 +29,14 @@ public class DevAdminPasswordInitializer implements ApplicationRunner {
     private final String adminUsername;
     private final String adminPlainPassword;
 
+    /**
+     * Constructor for DevAdminPasswordInitializer with required dependencies.
+     *
+     * @param userRepository repository for managing users
+     * @param passwordEncoder encoder for hashing passwords
+     * @param adminUsername the username for the admin account (configured via property)
+     * @param adminPlainPassword the plain text password for the admin account (configured via property)
+     */
     public DevAdminPasswordInitializer(UserRepository userRepository,
                                        PasswordEncoder passwordEncoder,
                                        @Value("${webscraper.security.admin.username:admin}") String adminUsername,
