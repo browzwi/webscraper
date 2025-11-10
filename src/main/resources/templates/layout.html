@@ -46,9 +46,14 @@
 <script th:inline="javascript">
     // CSRF Token Setup
     const csrfToken = /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+    const csrfHeader = /*[[${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}]]*/ 'X-CSRF-TOKEN';
+    if (csrfToken) {
+        window.csrfToken = csrfToken;
+        window.csrfHeaderName = csrfHeader;
+    }
     document.body.addEventListener('htmx:configRequest', function (event) {
         if (csrfToken) {
-            event.detail.headers['X-CSRF-TOKEN'] = csrfToken;
+            event.detail.headers[csrfHeader] = csrfToken;
         }
     });
 
