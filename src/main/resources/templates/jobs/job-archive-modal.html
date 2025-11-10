@@ -1,0 +1,150 @@
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="jobArchiveModal">
+    <div id="jobArchiveModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-zinc-800 border border-zinc-700 rounded-xl shadow-lg w-full max-w-md">
+            <div class="p-4 border-b border-zinc-700 flex justify-between items-center">
+                <h5 class="text-white font-bold">Creating Job Archive</h5>
+                <button type="button"
+                        class="text-white/60 hover:text-white"
+                        hx-get="/jobs/close-modal"
+                        hx-target="#jobArchiveModal"
+                        hx-swap="outerHTML"
+                        aria-label="Close">
+                    &times;
+                </button>
+            </div>
+            <div class="p-4">
+                <p class="text-zinc-300 mb-4" th:text="'Processing job: ' + ${jobName}"></p>
+                <div class="progress mb-3 bg-zinc-700 rounded-full h-2.5 overflow-hidden">
+                    <div id="jobArchiveProgressBar"
+                         class="progress-bar bg-primary h-2.5 rounded-full transition-all duration-300"
+                         role="progressbar"
+                         th:style="'width: ' + ${progressPercentage} + '%'"
+                         th:attr="aria-valuenow=${progressPercentage}"
+                         aria-valuemin="0"
+                         aria-valuemax="100">
+                        <span class="sr-only" th:text="${progressPercentage} + '%'">0%</span>
+                    </div>
+                </div>
+                <p class="text-zinc-400 text-sm mb-2">
+                    <span id="jobArchiveProcessedTargets" th:text="${processedTargets}">0</span>
+                    of
+                    <span id="jobArchiveTotalTargets" th:text="${totalTargets}">0</span>
+                    targets processed
+                </p>
+                <p id="jobArchiveStatusText" class="text-zinc-300 text-sm" th:text="${status}">Initializing...</p>
+                <div id="jobArchiveDownloadContainer" class="hidden">
+                    <a th:href="@{'/jobs/' + ${jobId} + '/download-archive'}"
+                       class="btn btn-primary w-full mt-4"
+                       id="jobArchiveDownloadBtn">
+                        Download Archive
+                    </a>
+                </div>
+            </div>
+            <div class="p-4 border-t border-zinc-700 flex justify-end">
+                <button type="button" class="btn btn-secondary"
+                        hx-get="/jobs/close-modal"
+                        hx-target="#jobArchiveModal"
+                        hx-swap="outerHTML">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        (function() {
+            const sessionId = /*[[${sessionId}]]*/ null;
+            const jobId = /*[[${jobId}]]*/ null;
+            if (!sessionId || !jobId) {
+                return;
+            }
+
+            const modalEl = document.getElementById('jobArchiveModal');
+            if (!modalEl) {
+                return;
+            }
+
+            const progressBar = modalEl.querySelector('#jobArchiveProgressBar');
+            const statusText = modalEl.querySelector('#jobArchiveStatusText');
+            const processedLabel = modalEl.querySelector('#jobArchiveProcessedTargets');
+            const totalLabel = modalEl.querySelector('#jobArchiveTotalTargets');
+            const downloadContainer = modalEl.querySelector('#jobArchiveDownloadContainer');
+
+            startArchive(sessionId, jobId);
+
+            function startArchive(sessionId, jobId) {
+                fetch('/jobs/' + jobId + '/start-archive?sessionId=' + sessionId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(checkResponse)
+                .then(data => {
+                    if (data.status === 'started') {
+                        pollArchiveProgress(sessionId);
+                    }
+                })
+                .catch(error => handleError('Unable to start archive creation.', error));
+            }
+
+            function pollArchiveProgress(sessionId) {
+                const intervalId = setInterval(() => {
+                    fetch('/jobs/archive-status/' + sessionId)
+                        .then(checkResponse)
+                        .then(data => {
+                            updateProgress(data);
+                            if (data.complete) {
+                                clearInterval(intervalId);
+                                showDownloadReady();
+                            }
+                        })
+                        .catch(error => {
+                            clearInterval(intervalId);
+                            handleError('Unable to update archive progress.', error);
+                        });
+                }, 1000);
+            }
+
+            function updateProgress(data) {
+                if (progressBar) {
+                    progressBar.style.width = data.progressPercentage + '%';
+                    progressBar.setAttribute('aria-valuenow', data.progressPercentage);
+                }
+
+                if (statusText) {
+                    statusText.textContent = data.status;
+                }
+
+                if (processedLabel) {
+                    processedLabel.textContent = data.processedTargets;
+                }
+
+                if (totalLabel) {
+                    totalLabel.textContent = data.totalTargets;
+                }
+            }
+
+            function showDownloadReady() {
+                if (downloadContainer) {
+                    downloadContainer.classList.remove('hidden');
+                }
+                if (statusText) {
+                    statusText.textContent = 'Archive ready for download!';
+                }
+            }
+
+            function handleError(message, error) {
+                console.error(message, error);
+                if (statusText) {
+                    statusText.textContent = message;
+                }
+            }
+
+            function checkResponse(response) {
+                if (!response.ok) {
+                    throw new Error('Request failed with status ' + response.status);
+                }
+                return response.json();
+            }
+        })();
+    </script>
+</div>

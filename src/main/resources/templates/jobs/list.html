@@ -70,6 +70,13 @@
                         <td>
                             <div class="flex items-center justify-end gap-2">
                                 <button class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                        title="Download job archive"
+                                        th:attr="hx-get=@{'/jobs/' + ${job.id} + '/archive-progress'},
+                                                 hx-target='#job-archive-modal-host',
+                                                 hx-swap='innerHTML'">
+                                    <span class="material-symbols-outlined text-xl">download</span>
+                                </button>
+                                <button class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                                         title="Run job now"
                                         th:attr="hx-post=@{'/jobs/' + ${job.id} + '/run'}"
                                         hx-swap="none"
@@ -104,5 +111,9 @@
             </table>
         </div>
     </div>
+    
+    <div id="job-archive-modal-host"></div>
+    
+    <div th:fragment="closeModal"></div>
 </main>
 </html>

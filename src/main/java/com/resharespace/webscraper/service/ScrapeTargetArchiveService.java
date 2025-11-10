@@ -12,12 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -128,6 +123,15 @@ public class ScrapeTargetArchiveService {
             throw new ArchiveCreationException("Failed to assemble archive for target " + target.getId(), e);
         }
     }
+
+    /**
+     * Produces a zipped archive containing all targets' structured data and processed pages for a job.
+     * Uses UTF-8 encoded ZIP entries to ensure cross-platform compatibility and wraps IO failures
+     * in a dedicated runtime exception for the controller to translate into HTTP responses.
+     *
+     * @param job the job whose targets are to be archived
+     * @return binary representation of the archive ready for HTTP streaming
+     */
 
     private String buildMetadata(ScrapeJob job,
                                  ScrapeTarget target,

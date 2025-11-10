@@ -16,7 +16,9 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
@@ -28,15 +30,15 @@ import org.springframework.util.StringUtils;
 @Service
 public class ScrapeJobSchedulerService {
 
-    private final Scheduler scheduler;
+    private final SchedulerFactoryBean schedulerFactoryBean;
 
     /**
      * Constructor for ScrapeJobSchedulerService with required dependencies.
      *
-     * @param scheduler the Quartz scheduler instance
+     * @param schedulerFactoryBean the Quartz scheduler factory bean instance
      */
-    public ScrapeJobSchedulerService(Scheduler scheduler) {
-        this.scheduler = scheduler;
+    public ScrapeJobSchedulerService(SchedulerFactoryBean schedulerFactoryBean) {
+        this.schedulerFactoryBean = schedulerFactoryBean;
     }
 
     /**
@@ -47,8 +49,10 @@ public class ScrapeJobSchedulerService {
      * @param job the scraping job to schedule
      * @throws SchedulingException if there's an error scheduling the job
      */
+    @Transactional
     public void scheduleJob(ScrapeJob job) {
         try {
+            Scheduler scheduler = schedulerFactoryBean.getScheduler();
             JobKey key = JobKey.jobKey(jobKey(job.getId()));
             JobDetail detail = JobBuilder.newJob(ScrapeQuartzJob.class)
                     .withIdentity(key)
@@ -74,6 +78,7 @@ public class ScrapeJobSchedulerService {
      */
     public void triggerJob(ScrapeJob job) {
         try {
+            Scheduler scheduler = schedulerFactoryBean.getScheduler();
             JobKey key = JobKey.jobKey(jobKey(job.getId()));
             if (!scheduler.checkExists(key)) {
                 scheduleJob(job);
@@ -94,6 +99,7 @@ public class ScrapeJobSchedulerService {
     public Optional<Instant> findNextFireTime(UUID jobId) {
         JobKey key = JobKey.jobKey(jobKey(jobId));
         try {
+            Scheduler scheduler = schedulerFactoryBean.getScheduler();
             if (!scheduler.checkExists(key)) {
                 return Optional.empty();
             }

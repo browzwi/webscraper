@@ -52,15 +52,5 @@ public class QuartzConfig {
         };
     }
 
-    /**
-     * Creates and returns the configured Quartz Scheduler instance.
-     *
-     * @param factoryBean the configured factory bean
-     * @return the Quartz Scheduler instance
-     * @throws SchedulerException if there's an error creating the scheduler
-     */
-    @Bean
-    public Scheduler scheduler(SchedulerFactoryBean factoryBean) throws SchedulerException {
-        return factoryBean.getScheduler();
-    }
+
 }
