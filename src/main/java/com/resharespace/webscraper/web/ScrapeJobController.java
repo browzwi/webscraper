@@ -9,6 +9,7 @@ import com.browzwi.webscraper.domain.ScrapeTarget;
 import com.browzwi.webscraper.repository.ScraperRecipeRepository;
 import com.browzwi.webscraper.service.ScrapeJobService;
 import com.browzwi.webscraper.service.ScrapeTargetArchiveService;
+import com.browzwi.webscraper.storage.FileStorageService;
 import com.browzwi.webscraper.web.dto.JobForm;
 import com.browzwi.webscraper.web.view.ScrapeJobDetailView;
 import com.browzwi.webscraper.web.view.ScrapeJobListItemView;
@@ -17,18 +18,33 @@ import com.browzwi.webscraper.web.view.ScrapeTargetProgressGroupView;
 import com.browzwi.webscraper.web.view.ScrapeTargetProgressView;
 import com.browzwi.webscraper.web.view.ScrapeTargetRowView;
 import jakarta.validation.Valid;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.regex.Matcher;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,14 +53,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.browzwi.webscraper.storage.FileStorageService.StoredPageResult;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -64,13 +82,17 @@ public class ScrapeJobController {
     private static final DateTimeFormatter DISPLAY_FORMATTER = DateTimeFormatter
             .ofPattern("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             .withZone(ZoneId.systemDefault());
+    private static final DateTimeFormatter ARCHIVE_FILENAME_FORMAT = DateTimeFormatter
+            .ofPattern("yyyyMMdd-HHmmss", Locale.getDefault())
+            .withZone(ZoneId.systemDefault());
+    private static final Duration ARCHIVE_SESSION_TIMEOUT = Duration.ofMinutes(30);
     private static final Pattern NUMBER_PREFIX = Pattern.compile("^\\s*\\d+\\.?\\s*");
     private static final Pattern PAGE_START_PATTERN = Pattern.compile("(?i)^starting\\s+scrape\\s+for\\s+(.+)$");
 
     private final ScrapeJobService jobService;
     private final ScraperRecipeRepository recipeRepository;
     private final ScrapeTargetArchiveService archiveService;
-    private final com.browzwi.webscraper.storage.FileStorageService storageService;
+    private final FileStorageService storageService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -85,7 +107,7 @@ public class ScrapeJobController {
     public ScrapeJobController(ScrapeJobService jobService,
                                ScraperRecipeRepository recipeRepository,
                                ScrapeTargetArchiveService archiveService,
-                               com.browzwi.webscraper.storage.FileStorageService storageService,
+                               FileStorageService storageService,
                                ObjectMapper objectMapper) {
         this.jobService = jobService;
         this.recipeRepository = recipeRepository;
@@ -479,7 +501,8 @@ public class ScrapeJobController {
         String sessionId = UUID.randomUUID().toString();
         
         // Initialize progress tracking session
-        ArchiveSession session = new ArchiveSession(jobId, job.getName(), targets.size());
+        ArchiveSession session = new ArchiveSession(sessionId, jobId, job.getName(), targets.size());
+        session.setStatus("Preparing archive creation...");
         archiveSessions.put(sessionId, session);
         
         model.addAttribute("jobId", jobId);
@@ -500,51 +523,77 @@ public class ScrapeJobController {
         if (session == null) {
             return ResponseEntity.notFound().build();
         }
-        
-        // Start the actual archive creation in a background thread
-        CompletableFuture.runAsync(() -> {
-            try {
-                // Get the actual list of targets and process them
-                List<ScrapeTarget> targets = jobService.listTargets(jobId);
-                
-                // Process each target sequentially (could be parallel in optimized version)
-                for (int i = 0; i < targets.size(); i++) {
-                    ScrapeTarget target = targets.get(i);
-                    
-                    // Update progress
-                    session.setProcessedTargets(i + 1);
-                    session.setStatus("Processing target " + (i + 1) + " of " + targets.size() + ": " + target.getUrl());
-                    
-                    // In a real system, you would create the archive entries here
-                    // For now, just simulate the processing time
-                    Thread.sleep(200); // Replace with actual archive creation logic
-                    
-                    // Check if session is still active (not cancelled or timed out)
-                    if (System.currentTimeMillis() - session.getStartTime() > 30 * 60 * 1000) { // 30 mins timeout
-                        session.setStatus("Operation timed out");
-                        session.setComplete(true);
-                        return;
-                    }
-                }
-                
-                // Mark as complete
-                session.setStatus("Archive creation completed successfully");
-                session.setComplete(true);
-                
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                session.setStatus("Archive creation was interrupted");
-            } catch (Exception e) {
-                session.setStatus("Error during archive creation: " + e.getMessage());
-                log.error("Error during job archive creation", e);
-            }
-        });
-        
-        // Return the session ID for tracking
+        if (!session.getJobId().equals(jobId)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        if (session.isComplete()) {
+            Map<String, String> completedResponse = new HashMap<>();
+            completedResponse.put("sessionId", sessionId);
+            completedResponse.put("status", "completed");
+            return ResponseEntity.ok(completedResponse);
+        }
+
+        CompletableFuture.runAsync(() -> buildJobArchive(session));
+
         Map<String, String> response = new HashMap<>();
         response.put("sessionId", sessionId);
         response.put("status", "started");
         return ResponseEntity.ok(response);
+    }
+
+    private void buildJobArchive(ArchiveSession session) {
+        Path tempArchive = null;
+        try {
+            UUID jobId = session.getJobId();
+            ScrapeJob job = jobService.getJob(jobId);
+            List<ScrapeTarget> targets = jobService.listTargets(jobId);
+            session.setTotalTargets(targets.size());
+            session.setProcessedTargets(0);
+            session.setStatus(targets.isEmpty()
+                    ? "No targets available. Generating metadata archive."
+                    : "Preparing archive for " + targets.size() + " targets...");
+
+            Path archiveDir = storageService.resolveJobArchiveDir(jobId);
+            tempArchive = Files.createTempFile(archiveDir, "building-", ".zip");
+
+            boolean completed;
+            try (ZipOutputStream zos = new ZipOutputStream(
+                    Files.newOutputStream(tempArchive, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING),
+                    StandardCharsets.UTF_8)) {
+                completed = writeJobArchive(job, targets, zos, session);
+            }
+
+            if (!completed) {
+                try {
+                    Files.deleteIfExists(tempArchive);
+                } catch (IOException cleanupEx) {
+                    log.warn("Failed to delete temporary archive {} after cancellation", tempArchive, cleanupEx);
+                }
+                return;
+            }
+
+            String fileName = "job-archive-" + ARCHIVE_FILENAME_FORMAT.format(Instant.now()) + ".zip";
+            Path finalPath = storageService.resolveJobArchivePath(jobId, fileName);
+            Files.move(tempArchive, finalPath, StandardCopyOption.REPLACE_EXISTING);
+            long size = Files.size(finalPath);
+
+            session.markArchiveReady(fileName, size, "/jobs/" + jobId + "/download-archive");
+            session.setStatus("Archive creation completed successfully");
+            session.setComplete(true);
+        } catch (Exception ex) {
+            if (tempArchive != null) {
+                try {
+                    Files.deleteIfExists(tempArchive);
+                } catch (IOException cleanupEx) {
+                    log.warn("Failed to delete temporary archive {}", tempArchive, cleanupEx);
+                }
+            }
+            if (!session.isComplete()) {
+                session.setStatus("Error during archive creation: " + ex.getMessage());
+                session.setComplete(true);
+            }
+            log.error("Error during job archive creation for job {}", session.getJobId(), ex);
+        }
     }
     
     @GetMapping("/archive-status/{sessionId}")
@@ -570,19 +619,22 @@ public class ScrapeJobController {
         private final String sessionId;
         private final UUID jobId;
         private final String jobName;
-        private final int totalTargets;
+        private volatile int totalTargets;
         private volatile int processedTargets = 0;
         private volatile String status = "Initializing...";
         private volatile boolean complete = false;
+        private volatile String downloadUrl;
+        private volatile String archiveFileName;
+        private volatile Long archiveSizeBytes;
         private final long startTime = System.currentTimeMillis();
         
-        public ArchiveSession(UUID jobId, String jobName, int totalTargets) {
-            this.sessionId = UUID.randomUUID().toString();
+        public ArchiveSession(String sessionId, UUID jobId, String jobName, int totalTargets) {
+            this.sessionId = sessionId;
             this.jobId = jobId;
             this.jobName = jobName;
             this.totalTargets = totalTargets;
         }
-        
+
         public String getSessionId() {
             return sessionId;
         }
@@ -597,6 +649,10 @@ public class ScrapeJobController {
         
         public int getTotalTargets() {
             return totalTargets;
+        }
+
+        public void setTotalTargets(int totalTargets) {
+            this.totalTargets = totalTargets;
         }
         
         public int getProcessedTargets() {
@@ -623,114 +679,150 @@ public class ScrapeJobController {
             this.complete = complete;
         }
         
+        public String getDownloadUrl() {
+            return downloadUrl;
+        }
+
+        public String getArchiveFileName() {
+            return archiveFileName;
+        }
+
+        public Long getArchiveSizeBytes() {
+            return archiveSizeBytes;
+        }
+
         public int getProgressPercentage() {
-            if (totalTargets == 0) return 0;
+            if (totalTargets == 0) {
+                return complete ? 100 : 0;
+            }
             return Math.min(100, (int) Math.round((double) processedTargets / totalTargets * 100));
         }
-        
-        public long getStartTime() {
-            return startTime;
+
+        public boolean isTimedOut(Duration timeout) {
+            return System.currentTimeMillis() - startTime > timeout.toMillis();
+        }
+
+        public void markArchiveReady(String fileName, long sizeBytes, String downloadUrl) {
+            this.archiveFileName = fileName;
+            this.archiveSizeBytes = sizeBytes;
+            this.downloadUrl = downloadUrl;
         }
     }
     
     /**
-     * Starts the job archive creation process in the background.
-     * This method initiates the archive creation and returns a response indicating the start.
+     * Streams the most recently generated archive for the requested job.
      *
-     * @param jobId the ID of the job to archive
-     * @return an accepted response entity
-     */
-    /**
-     * Creates and downloads a ZIP archive containing all data for a job.
-     * This method creates an archive with all targets' structured data and processed pages.
+     * <p>Archives are assembled asynchronously via {@link #startJobArchive(UUID, String)} and persisted
+     * on disk. This endpoint therefore reads the latest completed ZIP from the filesystem and streams it
+     * without reprocessing targets.</p>
      *
-     * @param jobId the ID of the job to archive
-     * @return a response entity containing the archive file
+     * @param jobId the job whose latest archive should be downloaded
+     * @return HTTP response with the archive contents or 404 when no archive exists
      */
     @GetMapping("/{jobId}/download-archive")
-    public ResponseEntity<ByteArrayResource> downloadJobArchive(@PathVariable("jobId") UUID jobId) {
-        ScrapeJob job = jobService.getJob(jobId);
-        List<ScrapeTarget> targets = jobService.listTargets(jobId);
-        
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             ZipOutputStream zos = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
-            
-            // Add job metadata
-            String jobMetadata = buildJobMetadata(job, targets.size());
-            writeZipEntry(zos, "job-metadata.xml", jobMetadata);
-            
-            // Process each target and add its data to the archive
-            for (int i = 0; i < targets.size(); i++) {
-                ScrapeTarget target = targets.get(i);
-                Optional<ScrapeResultData> resultOpt = jobService.findResult(target.getId());
-                
-                // Create a subdirectory for each target using its URL as the folder name
-                String targetDir = "target-" + i + "_" + sanitizeFileName(target.getUrl()) + "/";
-                
-                // Add target metadata
-                String targetMetadata = buildTargetMetadata(target, resultOpt);
-                writeZipEntry(zos, targetDir + "metadata.xml", targetMetadata);
-                
-                // Add structured data if available
-                if (resultOpt.isPresent() && StringUtils.hasText(resultOpt.get().getDataJson())) {
-                    writeZipEntry(zos, targetDir + "structured.json", resultOpt.get().getDataJson());
-                }
-                
-                // Add processed HTML if available
-                String processedHtml = storageService.loadProcessedHtml(jobId, target.getId());
-                if (StringUtils.hasText(processedHtml)) {
-                    writeZipEntry(zos, targetDir + "processed.html", processedHtml);
-                }
-                
-                // Add processed Markdown if available
-                String processedMarkdown = storageService.loadProcessedMarkdown(jobId, target.getId());
-                if (StringUtils.hasText(processedMarkdown)) {
-                    writeZipEntry(zos, targetDir + "processed.md", processedMarkdown);
-                }
-                
-                // Add raw HTML if available
-                String rawHtml = storageService.loadRawHtml(jobId, target.getId());
-                if (StringUtils.hasText(rawHtml)) {
-                    writeZipEntry(zos, targetDir + "raw.html", rawHtml);
-                }
-                
-                // Process any multi-page results if they exist
-                if (storageService.hasPageArtifacts(jobId, target.getId())) {
-                    List<StoredPageResult> pageResults = storageService.loadPageResults(jobId, target.getId());
-                    for (int j = 0; j < pageResults.size(); j++) {
-                        StoredPageResult pageResult = pageResults.get(j);
-                        String pageDir = targetDir + "pages/page-" + j + "_" + sanitizeFileName(pageResult.pageKey()) + "/";
-                        
-                        if (StringUtils.hasText(pageResult.rawHtml())) {
-                            writeZipEntry(zos, pageDir + "raw.html", pageResult.rawHtml());
-                        }
-                        if (StringUtils.hasText(pageResult.processedHtml())) {
-                            writeZipEntry(zos, pageDir + "processed.html", pageResult.processedHtml());
-                        }
-                        if (StringUtils.hasText(pageResult.processedMarkdown())) {
-                            writeZipEntry(zos, pageDir + "processed.md", pageResult.processedMarkdown());
-                        }
-                        
-                        // Add page metadata
-                        String pageMetadata = buildPageMetadata(pageResult);
-                        writeZipEntry(zos, pageDir + "metadata.xml", pageMetadata);
-                    }
-                }
-            }
-            
-            zos.finish();
-            byte[] archive = baos.toByteArray();
-            ByteArrayResource resource = new ByteArrayResource(archive);
-            String filename = "job-archive-" + jobId + ".zip";
-            
+    public ResponseEntity<InputStreamResource> downloadJobArchive(@PathVariable("jobId") UUID jobId) {
+        Optional<Path> latestArchive = storageService.findLatestJobArchive(jobId);
+        if (latestArchive.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Path archivePath = latestArchive.get();
+        try {
+            InputStreamResource resource = new InputStreamResource(
+                    Files.newInputStream(archivePath, StandardOpenOption.READ));
+            long size = Files.size(archivePath);
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + archivePath.getFileName() + "\"")
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .contentLength(archive.length)
+                    .contentLength(size)
                     .body(resource);
         } catch (IOException e) {
-            log.error("Failed to create job archive for job " + jobId, e);
-            return ResponseEntity.status(500).build();
+            log.error("Failed to read stored archive for job {}", jobId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    private boolean writeJobArchive(ScrapeJob job,
+                                    List<ScrapeTarget> targets,
+                                    ZipOutputStream zos,
+                                    ArchiveSession session) throws IOException {
+        writeZipEntry(zos, "job-metadata.xml", buildJobMetadata(job, targets.size()));
+        if (targets.isEmpty()) {
+            return true;
+        }
+        UUID jobId = job.getId();
+        for (int i = 0; i < targets.size(); i++) {
+            if (session.isTimedOut(ARCHIVE_SESSION_TIMEOUT)) {
+                session.setStatus("Operation timed out");
+                session.setComplete(true);
+                return false;
+            }
+            ScrapeTarget target = targets.get(i);
+            session.setStatus("Processing target " + (i + 1) + " of " + targets.size() + ": " + target.getUrl());
+            Optional<ScrapeResultData> resultOpt = jobService.findResult(target.getId());
+            appendTargetArchive(jobId, target, resultOpt, i, zos);
+            session.setProcessedTargets(i + 1);
+        }
+        session.setStatus("Finalizing archive...");
+        return true;
+    }
+
+    private void appendTargetArchive(UUID jobId,
+                                     ScrapeTarget target,
+                                     Optional<ScrapeResultData> resultOpt,
+                                     int targetIndex,
+                                     ZipOutputStream zos) throws IOException {
+        String targetDir = "target-" + String.format("%02d", targetIndex + 1)
+                + "_" + sanitizeFileName(target.getUrl()) + "/";
+
+        writeZipEntry(zos, targetDir + "metadata.xml", buildTargetMetadata(target, resultOpt));
+
+        resultOpt.map(ScrapeResultData::getDataJson)
+                .filter(StringUtils::hasText)
+                .ifPresent(json -> {
+                    try {
+                        writeZipEntry(zos, targetDir + "structured.json", json);
+                    } catch (IOException e) {
+                        log.error("Failed to write structured.json to archive for target: {}", target.getId(), e);
+                    }
+                });
+
+        String processedHtml = storageService.loadProcessedHtml(jobId, target.getId());
+        if (StringUtils.hasText(processedHtml)) {
+            writeZipEntry(zos, targetDir + "processed.html", processedHtml);
+        }
+
+        String processedMarkdown = storageService.loadProcessedMarkdown(jobId, target.getId());
+        if (StringUtils.hasText(processedMarkdown)) {
+            writeZipEntry(zos, targetDir + "processed.md", processedMarkdown);
+        }
+
+        String rawHtml = storageService.loadRawHtml(jobId, target.getId());
+        if (StringUtils.hasText(rawHtml)) {
+            writeZipEntry(zos, targetDir + "raw.html", rawHtml);
+        }
+
+        if (!storageService.hasPageArtifacts(jobId, target.getId())) {
+            return;
+        }
+
+        List<StoredPageResult> pageResults = storageService.loadPageResults(jobId, target.getId());
+        for (int j = 0; j < pageResults.size(); j++) {
+            StoredPageResult pageResult = pageResults.get(j);
+            String pageDir = targetDir + "pages/page-" + String.format("%02d", j + 1)
+                    + "_" + sanitizeFileName(pageResult.pageKey()) + "/";
+
+            if (StringUtils.hasText(pageResult.rawHtml())) {
+                writeZipEntry(zos, pageDir + "raw.html", pageResult.rawHtml());
+            }
+            if (StringUtils.hasText(pageResult.processedHtml())) {
+                writeZipEntry(zos, pageDir + "processed.html", pageResult.processedHtml());
+            }
+            if (StringUtils.hasText(pageResult.processedMarkdown())) {
+                writeZipEntry(zos, pageDir + "processed.md", pageResult.processedMarkdown());
+            }
+
+            writeZipEntry(zos, pageDir + "metadata.xml", buildPageMetadata(pageResult));
         }
     }
     

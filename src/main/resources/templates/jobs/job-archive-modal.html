@@ -32,12 +32,13 @@
                     targets processed
                 </p>
                 <p id="jobArchiveStatusText" class="text-zinc-300 text-sm" th:text="${status}">Initializing...</p>
-                <div id="jobArchiveDownloadContainer" class="hidden">
+                <div id="jobArchiveDownloadContainer" class="hidden" aria-hidden="true">
                     <a th:href="@{'/jobs/' + ${jobId} + '/download-archive'}"
                        class="btn btn-primary w-full mt-4"
                        id="jobArchiveDownloadBtn">
                         Download Archive
                     </a>
+                    <p id="jobArchiveDownloadMeta" class="text-xs text-zinc-400 mt-2 hidden"></p>
                 </div>
             </div>
             <div class="p-4 border-t border-zinc-700 flex justify-end">
@@ -67,6 +68,8 @@
             const processedLabel = modalEl.querySelector('#jobArchiveProcessedTargets');
             const totalLabel = modalEl.querySelector('#jobArchiveTotalTargets');
             const downloadContainer = modalEl.querySelector('#jobArchiveDownloadContainer');
+            const downloadButton = modalEl.querySelector('#jobArchiveDownloadBtn');
+            const downloadMeta = modalEl.querySelector('#jobArchiveDownloadMeta');
 
             const csrfHeader = window.csrfHeaderName || 'X-CSRF-TOKEN';
             const csrfToken = window.csrfToken || null;
@@ -99,7 +102,7 @@
                             updateProgress(data);
                             if (data.complete) {
                                 clearInterval(intervalId);
-                                showDownloadReady();
+                                showDownloadReady(data.downloadUrl, data.archiveSizeBytes, data.archiveFileName, data.status);
                             }
                         })
                         .catch(error => {
@@ -128,13 +131,46 @@
                 }
             }
 
-            function showDownloadReady() {
+            function showDownloadReady(downloadUrl, archiveSizeBytes, archiveFileName, statusMessage) {
+                if (downloadButton && downloadUrl) {
+                    downloadButton.href = downloadUrl;
+                }
                 if (downloadContainer) {
                     downloadContainer.classList.remove('hidden');
+                    downloadContainer.setAttribute('aria-hidden', 'false');
                 }
                 if (statusText) {
-                    statusText.textContent = 'Archive ready for download!';
+                    const sizeLabel = archiveSizeBytes ? ' (' + formatBytes(archiveSizeBytes) + ')' : '';
+                    statusText.textContent = (statusMessage || 'Archive ready for download!') + sizeLabel;
                 }
+                if (downloadMeta) {
+                    const bits = [];
+                    if (archiveFileName) {
+                        bits.push(archiveFileName);
+                    }
+                    if (archiveSizeBytes) {
+                        bits.push(formatBytes(archiveSizeBytes));
+                    }
+                    if (bits.length) {
+                        downloadMeta.textContent = bits.join(' • ');
+                        downloadMeta.classList.remove('hidden');
+                    }
+                }
+            }
+
+            function formatBytes(bytes) {
+                if (typeof bytes !== 'number' || Number.isNaN(bytes)) {
+                    return '';
+                }
+                const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                let value = bytes;
+                let unitIndex = 0;
+                while (value >= 1024 && unitIndex < units.length - 1) {
+                    value /= 1024;
+                    unitIndex++;
+                }
+                const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+                return value.toFixed(precision) + ' ' + units[unitIndex];
             }
 
             function handleError(message, error) {

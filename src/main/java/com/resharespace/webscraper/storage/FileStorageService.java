@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,6 +33,7 @@ public class FileStorageService {
     private static final String PROCESSED_MARKDOWN_FILE = "processed.md";
     private static final String PAGES_DIRECTORY = "pages";
     private static final String PAGE_META_FILE = "meta.properties";
+    private static final String JOB_ARCHIVES_DIRECTORY = "archives";
 
     private final Path root;
 
@@ -209,12 +211,57 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Ensures the archive directory for the given job exists and returns its path.
+     *
+     * @param jobId identifier of the job whose archive directory is requested
+     * @return absolute path of the archive directory
+     */
+    public Path resolveJobArchiveDir(UUID jobId) {
+        return ensureDirectory(jobArchiveDirPath(jobId));
+    }
+
+    /**
+     * Resolves an archive file path under the job archive directory, creating the directory if needed.
+     *
+     * @param jobId identifier of the job
+     * @param filename desired archive filename
+     * @return absolute path to the archive file location
+     */
+    public Path resolveJobArchivePath(UUID jobId, String filename) {
+        return resolveJobArchiveDir(jobId).resolve(filename);
+    }
+
+    /**
+     * Locates the newest archive for the given job based on last modified time.
+     *
+     * @param jobId identifier of the job whose archives are inspected
+     * @return optional containing the most recent archive path when it exists
+     */
+    public Optional<Path> findLatestJobArchive(UUID jobId) {
+        Path archiveDir = jobArchiveDirPath(jobId);
+        if (!Files.exists(archiveDir)) {
+            return Optional.empty();
+        }
+        try (Stream<Path> files = Files.list(archiveDir)) {
+            return files.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".zip"))
+                    .max(Comparator.comparingLong(this::lastModifiedSafe));
+        } catch (IOException e) {
+            throw new StorageException("Failed to inspect archives for job " + jobId, e);
+        }
+    }
+
     private Path jobDirPath(UUID jobId) {
         return root.resolve(jobId.toString());
     }
 
     private Path targetDirPath(UUID jobId, UUID targetId) {
         return jobDirPath(jobId).resolve(targetId.toString());
+    }
+
+    private Path jobArchiveDirPath(UUID jobId) {
+        return jobDirPath(jobId).resolve(JOB_ARCHIVES_DIRECTORY);
     }
 
     private Path pageDirPath(UUID jobId, UUID targetId, int order, String pageKey) {
@@ -294,6 +341,14 @@ public class FileStorageService {
 
     private String safeMetaValue(String value) {
         return value == null ? "" : value.replaceAll("\n", " ").trim();
+    }
+
+    private long lastModifiedSafe(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException e) {
+            throw new StorageException("Failed to read last modified time for " + path, e);
+        }
     }
 
     public record StoredPageResult(String directoryName,
