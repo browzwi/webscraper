@@ -273,40 +273,22 @@
                 progressContainer.append(progressLabel, progressBar);
                 stepsContainer.appendChild(progressContainer);
                 
-                // Render individual steps
-                steps.forEach((step, index) => {
-                    const li = document.createElement('li');
-                    li.className = 'flex items-start gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3';
-
-                    const number = document.createElement('span');
-                    number.className = 'text-xs font-mono text-zinc-500 mt-1.5 min-w-[24px]';
-                    number.textContent = String(index + 1).padStart(2, '0');
-
-                    const icon = iconForState(step.state);
-
-                    const content = document.createElement('div');
-                    content.className = 'flex-1';
-
-                    const title = document.createElement('p');
-                    title.className = `text-sm ${getStepTextColor(step.state)}`;
-                    title.textContent = step.label;
-                    content.appendChild(title);
-
-                    if (step.detail) {
-                        const detail = document.createElement('p');
-                        detail.className = 'text-xs text-zinc-400 mt-1';
-                        detail.textContent = step.detail;
-                        content.appendChild(detail);
-                    } else if (step.state === 'RUNNING') {
-                        const detail = document.createElement('p');
-                        detail.className = 'text-xs text-primary mt-1 flex items-center gap-1';
-                        detail.innerHTML = '<span class="inline-block w-1 h-1 bg-primary rounded-full animate-pulse"></span>Processing...';
-                        content.appendChild(detail);
-                    }
-
-                    li.append(number, icon, content);
-                    stepsContainer.appendChild(li);
-                });
+                // Add current status with spinner
+                const currentStep = steps.find(s => s.state === 'RUNNING');
+                if (currentStep) {
+                    const statusContainer = document.createElement('div');
+                    statusContainer.className = 'flex items-center gap-3 p-4 rounded-lg bg-zinc-800/50';
+                    
+                    const spinner = document.createElement('div');
+                    spinner.className = 'inline-flex h-4 w-4 rounded-full border-2 border-primary/70 border-t-transparent animate-spin';
+                    
+                    const statusText = document.createElement('span');
+                    statusText.className = 'text-sm text-zinc-300';
+                    statusText.textContent = currentStep.label;
+                    
+                    statusContainer.append(spinner, statusText);
+                    stepsContainer.appendChild(statusContainer);
+                }
             }
 
             function getStepTextColor(state) {
