@@ -248,12 +248,38 @@
                 }
                 stepsContainer.innerHTML = '';
                 const steps = data && Array.isArray(data.steps) ? data.steps : [];
+                
+                // Add progress bar
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'mb-4';
+                
+                const progressLabel = document.createElement('div');
+                progressLabel.className = 'flex justify-between text-xs text-zinc-400 mb-2';
+                
+                const completedSteps = steps.filter(s => s.state === 'COMPLETED').length;
+                const totalSteps = steps.length;
+                const progressPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+                
+                progressLabel.innerHTML = `<span>Progress</span><span>${completedSteps}/${totalSteps} steps (${progressPercent}%)</span>`;
+                
+                const progressBar = document.createElement('div');
+                progressBar.className = 'w-full bg-zinc-800 rounded-full h-2';
+                
+                const progressFill = document.createElement('div');
+                progressFill.className = 'bg-primary h-2 rounded-full transition-all duration-300';
+                progressFill.style.width = `${progressPercent}%`;
+                
+                progressBar.appendChild(progressFill);
+                progressContainer.append(progressLabel, progressBar);
+                stepsContainer.appendChild(progressContainer);
+                
+                // Render individual steps
                 steps.forEach((step, index) => {
                     const li = document.createElement('li');
                     li.className = 'flex items-start gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3';
 
                     const number = document.createElement('span');
-                    number.className = 'text-xs font-mono text-zinc-500 mt-1.5';
+                    number.className = 'text-xs font-mono text-zinc-500 mt-1.5 min-w-[24px]';
                     number.textContent = String(index + 1).padStart(2, '0');
 
                     const icon = iconForState(step.state);
@@ -262,7 +288,7 @@
                     content.className = 'flex-1';
 
                     const title = document.createElement('p');
-                    title.className = 'text-sm text-white';
+                    title.className = `text-sm ${getStepTextColor(step.state)}`;
                     title.textContent = step.label;
                     content.appendChild(title);
 
@@ -273,14 +299,24 @@
                         content.appendChild(detail);
                     } else if (step.state === 'RUNNING') {
                         const detail = document.createElement('p');
-                        detail.className = 'text-xs text-zinc-500 mt-1';
-                        detail.textContent = 'Processing...';
+                        detail.className = 'text-xs text-primary mt-1 flex items-center gap-1';
+                        detail.innerHTML = '<span class="inline-block w-1 h-1 bg-primary rounded-full animate-pulse"></span>Processing...';
                         content.appendChild(detail);
                     }
 
                     li.append(number, icon, content);
                     stepsContainer.appendChild(li);
                 });
+            }
+
+            function getStepTextColor(state) {
+                switch (state) {
+                    case 'COMPLETED': return 'text-green-300';
+                    case 'RUNNING': return 'text-primary';
+                    case 'FAILED': return 'text-red-300';
+                    case 'CANCELLED': return 'text-yellow-300';
+                    default: return 'text-zinc-400';
+                }
             }
 
             function applyStatusPill(status) {

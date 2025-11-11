@@ -157,6 +157,10 @@ public class RecipeTestSessionService {
 
         @Override
         public void onStepStarted(String step) {
+            // Add new step if it doesn't exist
+            if (session.getSteps().stream().noneMatch(s -> s.getLabel().equals(step))) {
+                session.addStep(step);
+            }
             session.markStepRunning(step);
         }
 
