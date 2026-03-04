@@ -38,3 +38,7 @@ build/
 src/main/resources/static/styles.css
 src/main/resources/static/mocks
 datarename_package.py
+.DS_Store
+CLAUDE.md
+GEMINI.md
+QWEN.md
