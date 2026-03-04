@@ -37,4 +37,4 @@ build/
 
 src/main/resources/static/styles.css
 src/main/resources/static/mocks
-data
+datarename_package.py
