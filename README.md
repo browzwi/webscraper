@@ -30,6 +30,8 @@ A Spring Boot-based web scraping platform with a modern web interface built usin
 - **User Authentication**: Spring Security with database-backed user management
 - **Responsive UI**: Modern, mobile-friendly interface with HTMX-powered partial updates
 - **Error Handling**: Comprehensive error pages and validation feedback
+- **URL Discovery**: Auto-discover businesses from Google Maps or Google Search (no API keys required)
+- **Email & Social Media Extraction**: Automatically extract contact info from business websites
 
 ## Technology Stack
 
@@ -187,6 +189,17 @@ Configure in `/settings` UI or via database:
 - **HtmlUnit**: Fast, lightweight, no JavaScript execution
 - **Playwright**: Full browser, supports JavaScript, slower
 
+### URL Discovery Sources
+
+Configure in `/settings` → **Discovery Source**:
+
+| Source | Description | API Key Required |
+|--------|-------------|------------------|
+| **Google Maps** | Scrapes Google Maps business listings (60+ results per search) | ❌ No |
+| **Google Search** | Scrapes Google Search results with optional site filter (e.g., facebook.com) | ❌ No |
+
+**Google Search Site Filter**: Optionally filter results to specific domains (e.g., "facebook.com" for Facebook pages only, leave blank for all sites).
+
 ## Running the Application
 
 ### Development Mode
@@ -282,6 +295,29 @@ Access **Settings** to:
 - Switch between HtmlUnit and Playwright
 - Configure timeout and retry policies
 - Manage storage location
+- **Configure URL Discovery source** (Google Maps or Google Search)
+- **Set site filter for Google Search** (optional, e.g., "facebook.com")
+
+### 6. URL Discovery (Auto-Find Businesses)
+
+1. Navigate to **Discovery** in sidebar
+2. Enter search criteria:
+   - **Keyword**: e.g., "coffee shops", "law firms", "restaurants"
+   - **Location**: e.g., "Makati, Metro Manila", "Kawit, Cavite"
+3. Click **Discover Businesses**
+4. Wait for completion (30-60 seconds)
+5. View discovered businesses with:
+   - Business name
+   - Address
+   - Phone number
+   - Website URL
+   - Email address (auto-extracted from website)
+   - Social media links (Facebook, Instagram, Twitter, LinkedIn, TikTok, YouTube)
+6. Click **Export to Excel** to download results
+
+**Discovery Sources** (configure in Settings):
+- **Google Maps**: Best for local businesses with complete information (60+ results)
+- **Google Search**: Best for finding websites with specific criteria, supports site filtering (e.g., facebook.com)
 
 ## API Endpoints
 
