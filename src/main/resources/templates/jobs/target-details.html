@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content" id="targetDetails">
+    <div th:if="${targetDetail != null}" class="space-y-4">
+        <div class="card">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-zinc-400">Scrape Target</p>
+                    <p class="text-white font-mono text-sm break-words" th:text="${targetDetail.url}"></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs uppercase tracking-wider text-zinc-500">Status</span>
+                    <span th:if="${targetDetail.status.name() == 'COMPLETED'}" class="badge badge-success">
+                        <span class="status-dot status-dot-success"></span>
+                        <span th:text="${targetDetail.status.name()}"></span>
+                    </span>
+                    <span th:if="${targetDetail.status.name() == 'RUNNING'}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
+                        <span class="w-2 h-2 mr-2 bg-purple-400 rounded-full"></span>
+                        <span>PROCESSING</span>
+                    </span>
+                    <span th:if="${targetDetail.status.name() == 'FAILED'}" class="badge badge-error">
+                        <span class="status-dot status-dot-error"></span>
+                        <span th:text="${targetDetail.status.name()}"></span>
+                    </span>
+                    <span th:if="${targetDetail.status.name() == 'PENDING'}" class="badge badge-neutral">
+                        <span class="status-dot status-dot-warning"></span>
+                        <span>PENDING</span>
+                    </span>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-sm text-zinc-300">
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500">Started</p>
+                    <p th:text="${targetDetail.startedAtLabel}"></p>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500">Finished</p>
+                    <p th:text="${targetDetail.finishedAtLabel}"></p>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500">Duration</p>
+                    <p th:text="${targetDetail.durationLabel}"></p>
+                </div>
+            </div>
+            <div th:if="${targetDetail.hasError}" class="mt-4 bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-3 rounded-xl">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="material-symbols-outlined">error</span>
+                    <h4 class="font-bold">Error Message</h4>
+                </div>
+                <p class="text-sm" th:text="${targetDetail.errorMessage}"></p>
+            </div>
+        </div>
+
+        <div class="card space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h3 class="text-white font-bold flex items-center gap-2">
+                        <span class="material-symbols-outlined">data_object</span>
+                        <span>Extracted Data</span>
+                    </h3>
+                    <p class="text-xs text-zinc-500 mt-1">
+                        Structured JSON for this run. Download the ZIP archive to inspect raw and processed HTML outputs.
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button th:if="${targetDetail.hasResult}"
+                            type="button"
+                            class="btn btn-secondary text-xs"
+                            onclick="copyFromElement(this, this.dataset.copyTarget)"
+                            th:attr="data-copy-target=${'#structured-' + targetDetail.id}">
+                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                        <span>Copy JSON</span>
+                    </button>
+                    <a th:if="${targetDetail.archiveAvailable}"
+                       class="btn btn-primary text-xs"
+                       th:href="@{'/jobs/' + ${jobId} + '/targets/' + ${targetDetail.id} + '/archive'}"
+                       th:download="${targetDetail.archiveFileName}">
+                        <span class="material-symbols-outlined text-sm">archive</span>
+                        <span>Download ZIP Archive</span>
+                    </a>
+                </div>
+            </div>
+
+            <div th:if="${targetDetail.hasResult}" class="space-y-3">
+                <pre class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                     th:id="${'structured-' + targetDetail.id}"
+                     th:text="${targetDetail.structuredJson}"></pre>
+            </div>
+            <div th:unless="${targetDetail.hasResult}" class="text-sm text-zinc-400 flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">hourglass_top</span>
+                <span>Structured data will appear after this target completes successfully.</span>
+            </div>
+        </div>
+    </div>
+    <div th:if="${targetDetail == null}" class="flex flex-col items-center justify-center py-12 text-zinc-400">
+        <span class="material-symbols-outlined text-6xl mb-3">touch_app</span>
+        <p class="text-base">Select a target to view results.</p>
+    </div>
+</div>
+</body>
+</html>

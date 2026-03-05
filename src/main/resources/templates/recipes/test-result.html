@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="result"
+     id="testResult"
+     class="space-y-6"
+     th:attr="data-session-id=${sessionId}, data-is-multi-page=${isMultiPage}">
+    <th:block th:with="status=${testStatus != null ? testStatus : (structured == null ? 'IDLE' : (#strings.startsWith(structured, 'Test failed') ? 'FAILED' : (#strings.startsWith(structured, 'Test cancelled') ? 'CANCELLED' : 'COMPLETED')))},
+                        hasMarkdownTab=${hasMarkdown != null ? hasMarkdown : (processedMarkdown != null and #strings.length(processedMarkdown) > 0)}">
+        <!-- Default placeholder when no test has been run -->
+        <div th:if="${status == 'IDLE'}" class="card min-h-[200px]">
+            <div class="flex flex-col items-center justify-center py-12 text-zinc-400">
+                <span class="material-symbols-outlined text-5xl mb-3">terminal</span>
+                <p class="text-center">Run a test to preview structured data and processed HTML.</p>
+            </div>
+        </div>
+
+        <!-- Error display -->
+        <th:block th:if="${status == 'FAILED'}">
+            <div class="card bg-red-500/20 border-red-500/30">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-red-400">error</span>
+                    <h3 class="font-bold text-red-400">Test Failed</h3>
+                </div>
+                <p class="text-sm text-red-400" th:text="${structured}"></p>
+            </div>
+            <div th:if="${progressSteps != null}" class="card">
+                <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined">list</span>
+                    <span>Processing Steps</span>
+                </h3>
+                <ol class="space-y-2 text-sm text-zinc-300 bg-zinc-900/30 p-4 rounded-lg">
+                    <li th:each="step, iterStat : ${progressSteps}"
+                        class="flex items-start gap-2 py-2 border-b border-zinc-800/50 last:border-0">
+                        <span class="text-primary font-mono flex-shrink-0" th:text="${iterStat.count} + '.'"></span>
+                        <span class="flex-1" th:text="${step}"></span>
+                    </li>
+                </ol>
+            </div>
+        </th:block>
+
+        <!-- Cancelled display -->
+        <th:block th:if="${status == 'CANCELLED'}">
+            <div class="card bg-yellow-500/20 border-yellow-500/40">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-yellow-300">cancel</span>
+                    <h3 class="font-bold text-yellow-300">Test Cancelled</h3>
+                </div>
+                <p class="text-sm text-yellow-200" th:text="${structured}"></p>
+            </div>
+            <div th:if="${progressSteps != null}" class="card">
+                <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined">list</span>
+                    <span>Processing Steps</span>
+                </h3>
+                <ol class="space-y-2 text-sm text-zinc-300 bg-zinc-900/30 p-4 rounded-lg">
+                    <li th:each="step, iterStat : ${progressSteps}"
+                        class="flex items-start gap-2 py-2 border-b border-zinc-800/50 last:border-0">
+                        <span class="text-primary font-mono flex-shrink-0" th:text="${iterStat.count} + '.'"></span>
+                        <span class="flex-1" th:text="${step}"></span>
+                    </li>
+                </ol>
+            </div>
+        </th:block>
+
+        <!-- Success display -->
+        <div th:if="${status == 'COMPLETED'}" class="space-y-4">
+            <div class="card bg-green-500/20 border-green-500/30">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-green-400">check_circle</span>
+                    <span class="text-green-400">Recipe test completed successfully!</span>
+                    <span th:if="${isMultiPage}" class="text-green-300 text-sm">(Multi-page scraping)</span>
+                </div>
+            </div>
+
+            <div class="card" data-tab-group>
+                <div class="border-b border-zinc-800 flex flex-wrap">
+                    <button class="tab-button px-4 py-3 text-sm font-medium text-zinc-400 hover:text-white data-[active='true']:text-white data-[active='true']:border-b-2 data-[active='true']:border-primary"
+                            type="button"
+                            data-active="true"
+                            data-tab-target="tab-structured">
+                        Extracted Data
+                    </button>
+                    <button class="tab-button px-4 py-3 text-sm font-medium text-zinc-400 hover:text-white data-[active='true']:text-white data-[active='true']:border-b-2 data-[active='true']:border-primary"
+                            type="button"
+                            data-active="false"
+                            data-tab-target="tab-html">
+                        Processed Pages
+                    </button>
+                </div>
+
+                <div class="p-4 space-y-4">
+                    <div id="tab-structured" class="tab-content active">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <h3 class="text-white font-bold flex items-center gap-2">
+                                <span class="material-symbols-outlined">data_object</span>
+                                <span>Extracted Data</span>
+                            </h3>
+                            <button type="button"
+                                    class="btn btn-secondary text-xs"
+                                    onclick="copyFromElement(this, '#testStructuredData')">
+                                <span class="material-symbols-outlined text-sm">content_copy</span>
+                                <span>Copy JSON</span>
+                            </button>
+                        </div>
+                        <pre id="testStructuredData"
+                             class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                             th:text="${structured}"></pre>
+                    </div>
+
+                    <div id="tab-html" class="tab-content hidden">
+                        <div th:if="${!isMultiPage}" class="space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h3 class="text-white font-bold flex items-center gap-2">
+                                    <span class="material-symbols-outlined">code</span>
+                                    <span>Processed HTML</span>
+                                </h3>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                            class="btn btn-secondary text-xs"
+                                            onclick="copyFromElement(this, '#testProcessedHtml')">
+                                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                                        <span>Copy HTML</span>
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-primary text-xs"
+                                            data-copy-target="#testProcessedHtml"
+                                            data-target-id="testProcessedHtml"
+                                            hx-post="/utils/beautify"
+                                            hx-target="#testProcessedHtml"
+                                            hx-swap="outerHTML"
+                                            hx-vals="js:buildBeautifyPayload(this)">
+                                        <span class="material-symbols-outlined text-sm">auto_fix</span>
+                                        <span>Beautify</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <pre id="testProcessedHtml"
+                                 class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                                 th:text="${processedHtml}"></pre>
+                            <details class="rounded-lg border border-zinc-800/60 bg-black/40 p-4">
+                                <summary class="cursor-pointer text-sm text-zinc-300">Raw HTML</summary>
+                                <pre class="mt-3 bg-black/30 text-zinc-300 p-3 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                                     th:text="${rawHtml}"></pre>
+                            </details>
+                        </div>
+
+                        <div th:if="${isMultiPage}" class="space-y-5">
+                            <div th:each="pageKey : ${pageResults.keySet()}"
+                                 th:with="processedPage=${pageResults.get(pageKey)},
+                                          pageValue=${processedPage.result},
+                                          pageLabel=${processedPage.label},
+                                          sanitizedKey=${processedPage.sanitizedKey},
+                                          processedHtmlId=${processedPage.processedHtmlId},
+                                          markdownId=${processedPage.markdownId},
+                                          rawId=${processedPage.rawId}"
+                                 class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <div>
+                                        <h4 class="text-white font-semibold flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-sm">code</span>
+                                            <span th:text="${pageLabel}"></span>
+                                        </h4>
+                                        <p class="text-xs text-zinc-400 mt-1" th:text="${pageValue.url}"></p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button"
+                                                class="btn btn-secondary text-xs"
+                                                th:attr="onclick=${processedPage.processedHtmlOnclick}">
+                                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                                            <span>Copy HTML</span>
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-primary text-xs"
+                                                hx-post="/utils/beautify"
+                                                hx-swap="outerHTML"
+                                                hx-vals="js:buildBeautifyPayload(this)"
+                                                th:attr="data-copy-target=${'#' + processedHtmlId}, data-target-id=${processedHtmlId}, hx-target=${'#' + processedHtmlId}">
+                                            <span class="material-symbols-outlined text-sm">auto_fix</span>
+                                            <span>Beautify</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <pre th:attr="id=${processedHtmlId}"
+                                     class="bg-black/50 text-zinc-300 p-4 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                                     th:text="${pageValue.processedHtml}"></pre>
+                                <details th:if="${pageValue.rawHtml != null and #strings.length(pageValue.rawHtml) > 0}"
+                                         class="rounded-lg border border-zinc-800/60 bg-black/40 p-4">
+                                    <summary class="cursor-pointer text-sm text-zinc-300">Raw HTML</summary>
+                                    <pre th:attr="id=${rawId}"
+                                         class="mt-3 bg-black/30 text-zinc-300 p-3 rounded-lg overflow-auto max-h-96 scrollbar-dark font-mono text-xs"
+                                         th:text="${pageValue.rawHtml}"></pre>
+                                </details>
+                                <div th:if="${pageValue != null and pageValue.processedMarkdown != null and #strings.length(pageValue.processedMarkdown) > 0}"
+                                     class="border-t border-zinc-800/60 pt-4">
+                                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                                        <h5 class="text-white font-semibold flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-sm">article</span>
+                                            <span>Processed Markdown</span>
+                                        </h5>
+                                        <button type="button"
+                                                class="btn btn-secondary text-xs"
+                                                th:attr="onclick=${processedPage.markdownOnclick}">
+                                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                                            <span>Copy Markdown</span>
+                                        </button>
+                                    </div>
+                                    <pre th:attr="id=${markdownId}"
+                                         class="bg-black/40 text-zinc-200 p-4 rounded-lg overflow-auto max-h-80 scrollbar-dark font-mono text-xs"
+                                         th:text="${pageValue.processedMarkdown}"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-markdown" class="tab-content hidden" th:if="${hasMarkdownTab}">
+                        <div th:if="${!isMultiPage}" class="space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h3 class="text-white font-bold flex items-center gap-2">
+                                    <span class="material-symbols-outlined">article</span>
+                                    <span>Markdown</span>
+                                </h3>
+                                <button type="button"
+                                        class="btn btn-secondary text-xs"
+                                        onclick="copyFromElement(this, '#testProcessedMarkdown')">
+                                    <span class="material-symbols-outlined text-sm">content_copy</span>
+                                    <span>Copy Markdown</span>
+                                </button>
+                            </div>
+                            <pre id="testProcessedMarkdown"
+                                 class="bg-black/40 text-zinc-200 p-4 rounded-lg overflow-auto max-h-80 scrollbar-dark font-mono text-xs"
+                                 th:text="${processedMarkdown}"></pre>
+                        </div>
+                        <div th:if="${isMultiPage}" class="space-y-5">
+                            <div th:each="pageKey : ${pageResults.keySet()}"
+                                 th:with="processedPage=${pageResults.get(pageKey)},
+                                          pageValue=${processedPage.result},
+                                          pageLabel=${processedPage.label},
+                                          sanitizedKey=${processedPage.sanitizedKey},
+                                          markdownId=${'tabOnlyMarkdown__'.concat(sanitizedKey)}"
+                                 th:if="${pageValue != null and pageValue.processedMarkdown != null and #strings.length(pageValue.processedMarkdown) > 0}"
+                                 class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-3">
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <h4 class="text-white font-semibold flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm">article</span>
+                                        <span th:text="${pageLabel}"></span>
+                                    </h4>
+                                    <button type="button"
+                                            class="btn btn-secondary text-xs"
+                                            th:attr="onclick=${processedPage.markdownOnclick}">
+                                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                                        <span>Copy Markdown</span>
+                                    </button>
+                                </div>
+                                <pre th:attr="id=${markdownId}"
+                                     class="bg-black/40 text-zinc-200 p-4 rounded-lg overflow-auto max-h-80 scrollbar-dark font-mono text-xs"
+                                     th:text="${pageValue.processedMarkdown}"></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-steps" class="tab-content hidden" th:if="${progressSteps}">
+                        <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined">list</span>
+                            <span>Processing Steps</span>
+                        </h3>
+                        <ol class="space-y-2 text-sm text-zinc-300 bg-zinc-900/30 p-4 rounded-lg">
+                            <li th:each="step, iterStat : ${progressSteps}"
+                                class="flex items-start gap-2 py-2 border-b border-zinc-800/50 last:border-0">
+                                <span class="text-primary font-mono flex-shrink-0" th:text="${iterStat.count} + '.'"></span>
+                                <span class="flex-1" th:text="${step}"></span>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</div>
+</body>
+</html>

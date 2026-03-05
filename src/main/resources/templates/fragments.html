@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="serverTime">
+    <span class="font-mono" th:text="${#temporals.format(now, 'yyyy-MM-dd HH:mm:ss z')}"/>
+</div>
+</body>
+</html>

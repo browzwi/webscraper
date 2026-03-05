@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main class="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+    <div class="text-center">
+        <span class="material-symbols-outlined text-9xl text-yellow-500 mb-4 block">block</span>
+        <p class="text-xs uppercase tracking-wide text-yellow-500 font-semibold mb-2">403 - Access Denied</p>
+        <h1 class="text-4xl font-black text-white mb-3">You don't have permission</h1>
+        <p class="text-base text-zinc-400 max-w-md">If you expected access, ensure you're logged in and have the right role.</p>
+    </div>
+
+    <div class="card max-w-2xl w-full">
+        <h2 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined">info</span>
+            Error Details
+        </h2>
+        <dl class="grid grid-cols-1 gap-3 text-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                <dt class="text-zinc-400 font-medium min-w-[100px]">Status:</dt>
+                <dd class="text-white font-mono" th:text="${status}">403</dd>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                <dt class="text-zinc-400 font-medium min-w-[100px]">Path:</dt>
+                <dd class="text-white font-mono text-xs break-all" th:text="${path}">/path</dd>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-start gap-2">
+                <dt class="text-zinc-400 font-medium min-w-[100px]">Message:</dt>
+                <dd class="text-white" th:text="${message}">Access denied message</dd>
+            </div>
+        </dl>
+    </div>
+
+    <div class="flex gap-3">
+        <a th:href="@{/dashboard}" class="btn btn-primary">
+            <span class="material-symbols-outlined">home</span>
+            <span>Go to Dashboard</span>
+        </a>
+        <a th:href="@{/login}" class="btn btn-secondary">
+            <span class="material-symbols-outlined">login</span>
+            <span>Sign In</span>
+        </a>
+    </div>
+</main>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main>
+    <div class="flex flex-col gap-2 mb-6">
+        <h1 class="text-white text-md md:text-lg font-black leading-tight tracking-tight">URL Discovery</h1>
+        <p class="text-zinc-400 text-base">Discover business URLs from Google Maps automatically.</p>
+    </div>
+
+    <div th:if="${message}" class="mb-6 bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl flex items-center gap-2">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span th:text="${message}"></span>
+    </div>
+
+    <section class="card max-w-4xl mb-6">
+        <h2 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">search</span>
+            Discover Businesses
+        </h2>
+
+        <form hx-post="/discovery/start"
+              hx-target="#results"
+              hx-swap="innerHTML"
+              hx-indicator=".htmx-indicator"
+              class="space-y-4">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2" for="keyword">
+                        Keyword / Business Type
+                    </label>
+                    <input type="text"
+                           id="keyword"
+                           name="keyword"
+                           placeholder="e.g., restaurant, clinic, salon"
+                           class="form-input-dark w-full"
+                           required/>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2" for="location">
+                        Location
+                    </label>
+                    <input type="text"
+                           id="location"
+                           name="location"
+                           placeholder="e.g., Kawit, Cavite"
+                           class="form-input-dark w-full"
+                           required/>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined text-lg">explore</span>
+                    <span>Start Discovery</span>
+                </button>
+                <span class="htmx-indicator flex items-center gap-2 text-zinc-400 text-sm">
+                    <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    Discovering...
+                </span>
+            </div>
+        </form>
+
+        <div class="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+            <div class="flex items-start gap-3 text-sm text-blue-300">
+                <span class="material-symbols-outlined text-xl">info</span>
+                <div>
+                    <p class="font-medium text-blue-200 mb-1">How it works</p>
+                    <p class="text-blue-300/80">
+                        Enter a business type and location to discover businesses from Google Maps.
+                        The system will automatically extract business names, addresses, phone numbers,
+                        websites, and scrape websites for email addresses and social media links.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="results"></div>
+
+    <section class="card max-w-4xl" th:if="${!#lists.isEmpty(jobs)}">
+        <h2 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">history</span>
+            Recent Discovery Jobs
+        </h2>
+
+        <div class="overflow-x-auto">
+            <table class="table-dark w-full">
+                <thead>
+                <tr>
+                    <th>Keyword</th>
+                    <th>Location</th>
+                    <th>Source</th>
+                    <th>Results</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="job : ${jobs}">
+                    <td class="text-white" th:text="${job.keyword}"></td>
+                    <td class="text-zinc-300" th:text="${job.location}"></td>
+                    <td>
+                        <span class="badge badge-info" th:text="${job.discoverySource}"></span>
+                    </td>
+                    <td class="text-white" th:text="${job.resultsCount}"></td>
+                    <td>
+                        <span th:class="${'badge ' + 
+                            (job.status == 'COMPLETED' ? 'badge-success' : 
+                            job.status == 'RUNNING' ? 'badge-warning' : 
+                            job.status == 'FAILED' ? 'badge-error' : 'badge-neutral')}"
+                              th:text="${job.status}"></span>
+                    </td>
+                    <td class="text-zinc-400" 
+                        th:text="${#temporals.format(job.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td>
+                        <a th:href="@{/discovery/{id}/results(id=${job.id})}"
+                           class="text-primary hover:text-primary-400 text-sm font-medium">
+                            View Results
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</html>

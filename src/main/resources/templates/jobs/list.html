@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main>
+    <!-- Page Heading -->
+    <div class="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-white text-md md:text-lg font-black leading-tight tracking-tight">Scrape Jobs</h1>
+            <p class="text-zinc-400 text-base mt-1">Track job status and inspect recent executions.</p>
+        </div>
+        <a class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary hover:bg-primary-700 text-white text-sm font-bold leading-normal tracking-wide gap-2 transition-colors"
+           th:href="@{/jobs/new}">
+            <span class="material-symbols-outlined text-xl">add</span>
+            <span>New Job</span>
+        </a>
+    </div>
+
+    <!-- Alert -->
+    <div th:if="${message}" class="mb-6 bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl flex items-center gap-2">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span th:text="${message}"></span>
+    </div>
+
+    <!-- Jobs Table -->
+    <div class="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table-dark">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Recipe</th>
+                        <th>Status</th>
+                        <th>Schedule</th>
+                        <th>Last Run</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="job : ${jobRows}">
+                        <td class="text-white font-medium" th:text="${job.name}"></td>
+                        <td class="text-white/70" th:text="${job.recipeName}"></td>
+                        <td>
+                            <span th:if="${job.status.name() == 'COMPLETED'}"
+                                  class="badge badge-success">
+                                <span class="status-dot status-dot-success"></span>
+                                <span th:text="${job.status}"></span>
+                            </span>
+                            <span th:if="${job.status.name() == 'RUNNING'}"
+                                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
+                                <span class="w-2 h-2 mr-2 bg-purple-400 rounded-full"></span>
+                                <span th:text="${job.status}"></span>
+                            </span>
+                            <span th:if="${job.status.name() == 'FAILED'}"
+                                  class="badge badge-error">
+                                <span class="status-dot status-dot-error"></span>
+                                <span th:text="${job.status}"></span>
+                            </span>
+                            <span th:if="${job.status.name() == 'PENDING'}"
+                                  class="badge badge-warning">
+                                <span class="status-dot status-dot-warning"></span>
+                                <span th:text="${job.status}"></span>
+                            </span>
+                        </td>
+                        <td class="text-white/70">
+                            <div th:text="${job.scheduleLabel}"></div>
+                            <div th:if="${job.countdownLabel != null}"
+                                 class="text-xs text-primary mt-1"
+                                 th:text="${job.countdownLabel}"></div>
+                        </td>
+                        <td class="text-white/70" th:text="${job.lastRunLabel}"></td>
+                        <td>
+                            <div class="flex items-center justify-end gap-2">
+                                <button class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                        title="Download job archive"
+                                        th:attr="hx-get=@{'/jobs/' + ${job.id} + '/archive-progress'},
+                                                 hx-target='#job-archive-modal-host',
+                                                 hx-swap='innerHTML'">
+                                    <span class="material-symbols-outlined text-xl">download</span>
+                                </button>
+                                <button class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                        title="Run job now"
+                                        th:attr="hx-post=@{'/jobs/' + ${job.id} + '/run'}"
+                                        hx-swap="none"
+                                        hx-confirm="Are you sure you want to run this job now?">
+                                    <span class="material-symbols-outlined text-xl">play_arrow</span>
+                                </button>
+                                <a th:href="@{'/jobs/' + ${job.id}}"
+                                   class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                   title="View details">
+                                    <span class="material-symbols-outlined text-xl">visibility</span>
+                                </a>
+                                <button class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                        title="Delete job"
+                                        hx-delete="/jobs/{id}"
+                                        hx-vals="js:{id: '[[${job.id}]]'}"
+                                        hx-confirm="Are you sure you want to delete this job?">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${jobRows.isEmpty()}">
+                        <td colspan="6" class="text-center text-white/50 py-8">
+                            <div class="flex flex-col items-center gap-2">
+                                <span class="material-symbols-outlined text-4xl">schedule</span>
+                                <p>No jobs scheduled yet.</p>
+                                <a th:href="@{/jobs/new}" class="text-primary hover:text-primary-400">Create your first job</a>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="job-archive-modal-host"></div>
+    
+    <div th:fragment="closeModal"></div>
+</main>
+</html>

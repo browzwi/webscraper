@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="add-discovery-tables" author="webscraper">
+        <createTable tableName="discovery_job">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_discovery_job"/>
+            </column>
+            <column name="keyword" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="location" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="discovery_source" type="VARCHAR(50)"/>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="results_count" type="INT"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="completed_at" type="DATETIME"/>
+        </createTable>
+
+        <createTable tableName="discovered_business">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_discovered_business"/>
+            </column>
+            <column name="business_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="address" type="VARCHAR(500)"/>
+            <column name="phone_number" type="VARCHAR(100)"/>
+            <column name="website_url" type="VARCHAR(500)"/>
+            <column name="email_address" type="VARCHAR(255)"/>
+            <column name="social_media_links" type="TEXT"/>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="discovery_job_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_business_discovery_job"
+                             references="discovery_job(id)"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="discovered_business" indexName="idx_discovery_job_id">
+            <column name="discovery_job_id"/>
+        </createIndex>
+
+        <createIndex tableName="discovery_job" indexName="idx_discovery_job_status">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

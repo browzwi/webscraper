@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main>
+    <!-- Page Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-white text-md md:text-lg font-black leading-tight tracking-tight" th:text="${jobDetail.name}"></h1>
+            <p class="text-zinc-400 text-base mt-1 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">receipt_long</span>
+                Recipe: <span class="text-primary" th:text="${jobDetail.recipeName}"></span>
+            </p>
+        </div>
+        <a th:href="@{/jobs}" class="flex items-center gap-1 text-sm text-primary hover:text-primary-400">
+            <span class="material-symbols-outlined text-lg">arrow_back</span>
+            <span>Back to list</span>
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="card">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-zinc-400">info</span>
+                <p class="text-xs text-zinc-400 uppercase tracking-wider">Status</p>
+            </div>
+            <p class="text-2xl font-bold text-white" th:text="${jobDetail.status}"></p>
+        </div>
+        <div class="card">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-zinc-400">schedule</span>
+                <p class="text-xs text-zinc-400 uppercase tracking-wider">Schedule</p>
+            </div>
+            <p class="text-2xl font-bold text-white" th:text="${jobDetail.scheduleLabel}"></p>
+            <p th:if="${jobDetail.countdownLabel != null}"
+               class="text-sm text-primary mt-1"
+               th:text="${jobDetail.countdownLabel}"></p>
+        </div>
+        <div class="card">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-zinc-400">person</span>
+                <p class="text-xs text-zinc-400 uppercase tracking-wider">Requested By</p>
+            </div>
+            <p class="text-2xl font-bold text-white" th:text="${jobDetail.requestedBy}"></p>
+        </div>
+    </section>
+
+    <!-- Targets Table -->
+    <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden mb-8">
+        <div class="p-6 border-b border-zinc-800">
+            <h2 class="text-white text-lg font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined">target</span>
+                Scrape Targets
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table-dark">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Status</th>
+                        <th>Started</th>
+                        <th>Finished</th>
+                        <th>Error</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="target : ${jobDetail.targets}">
+                        <td class="text-white font-mono text-xs max-w-md truncate" th:text="${target.url}" th:title="${target.url}"></td>
+                        <td>
+                            <span th:if="${target.status.name() == 'COMPLETED'}" class="badge badge-success">
+                                <span class="status-dot status-dot-success"></span>
+                                <span th:text="${target.status.name()}"></span>
+                            </span>
+                            <span th:if="${target.status.name() == 'RUNNING'}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
+                                <span class="w-2 h-2 mr-2 bg-purple-400 rounded-full"></span>
+                                <span th:text="${'PROCESSING'}"></span>
+                            </span>
+                            <span th:if="${target.status.name() == 'FAILED'}" class="badge badge-error">
+                                <span class="status-dot status-dot-error"></span>
+                                <span th:text="${target.status.name()}"></span>
+                            </span>
+                            <span th:if="${target.status.name() == 'PENDING'}" class="badge badge-neutral">
+                                <span class="status-dot status-dot-warning"></span>
+                                <span th:text="${'PENDING'}"></span>
+                            </span>
+                        </td>
+                        <td class="text-white/70 text-xs" th:text="${target.startedAtLabel}"></td>
+                        <td class="text-white/70 text-xs" th:text="${target.finishedAtLabel}"></td>
+                        <td class="text-red-400 text-xs max-w-xs truncate"
+                            th:text="${target.errorMessage}"
+                            th:title="${target.errorMessage}"
+                            th:classappend="${!target.hasError()} ? ' text-white/40' : ''"></td>
+                        <td class="text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <button class="btn btn-ghost text-xs px-3 py-1"
+                                        th:attr="hx-get=@{'/jobs/' + ${jobDetail.id} + '/targets/' + ${target.id}},
+                                                 hx-target='#targetDetails',
+                                                 hx-swap='innerHTML'">
+                                    <span class="material-symbols-outlined text-sm">visibility</span>
+                                    <span>View Data</span>
+                                </button>
+                                <button class="btn btn-ghost text-xs px-3 py-1"
+                                        th:attr="hx-get=@{'/jobs/' + ${jobDetail.id} + '/targets/' + ${target.id} + '/status'},
+                                                 hx-target='#progress-modal-host',
+                                                 hx-swap='innerHTML'">
+                                    <span class="material-symbols-outlined text-sm">speed</span>
+                                    <span>Progress</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${jobDetail.targets.isEmpty()}">
+                        <td colspan="6" class="text-center text-white/50 py-8">
+                            <div class="flex flex-col items-center gap-2">
+                                <span class="material-symbols-outlined text-4xl">inbox</span>
+                                <p>No targets yet.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Target Details Section -->
+    <section class="card">
+        <h2 class="text-white text-xl font-bold mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined">description</span>
+            Target Details
+        </h2>
+        <div id="targetDetails" class="min-h-[200px]">
+            <div class="flex flex-col items-center justify-center py-12 text-zinc-400">
+                <span class="material-symbols-outlined text-6xl mb-3">touch_app</span>
+                <p class="text-base">Select a target to view results.</p>
+            </div>
+        </div>
+    </section>
+
+    <div id="progress-modal-host"></div>
+</main>
+</html>

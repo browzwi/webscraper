@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main>
+    <!-- Page Heading -->
+    <div class="flex flex-col gap-2 mb-8">
+        <h1 class="text-zinc-900 dark:text-white text-md md:text-lg font-black leading-tight tracking-tight">Welcome back</h1>
+        <p class="text-zinc-500 dark:text-zinc-400 text-base font-normal">Here's a summary of your scraping activity.</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+        <div class="flex flex-col gap-2 rounded-xl bg-white dark:bg-zinc-900/50 p-6 border border-zinc-200 dark:border-zinc-800" th:each="stat : ${jobStats}">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-zinc-500 dark:text-zinc-400" th:text="${stat.icon}"></span>
+                <p class="text-zinc-700 dark:text-zinc-300 text-base font-medium" th:text="${stat.label}"></p>
+            </div>
+            <p class="text-zinc-900 dark:text-white text-3xl font-bold" th:text="${stat.value}"></p>
+        </div>
+    </div>
+
+    <!-- System Info Card -->
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 p-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex flex-col gap-1">
+                <p class="text-zinc-900 dark:text-white text-base font-bold">Server time</p>
+                <div id="serverTime" class="text-zinc-500 dark:text-zinc-400 text-sm font-mono"
+                     hx-trigger="load"
+                     hx-get="/fragments/server-time">
+                    Loading...
+                </div>
+            </div>
+            <button class="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary/20 text-primary hover:bg-primary/30 text-sm font-medium transition-colors"
+                    hx-get="/fragments/server-time"
+                    hx-target="#serverTime"
+                    hx-swap="innerHTML">
+                <span class="material-symbols-outlined text-base">refresh</span>
+                <span>Refresh</span>
+            </button>
+        </div>
+    </div>
+</main>
+</html>

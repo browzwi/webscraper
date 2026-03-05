@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main>
+    <!-- Page Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-white text-md lg:text-lg font-black leading-tight tracking-tight" th:text="${#strings.isEmpty(recipe.id)} ? 'New Recipe' : 'Edit Recipe'"></h1>
+            <p class="text-zinc-400 text-base mt-1">Define YAML recipes and validate them with HTMX-powered previews.</p>
+        </div>
+        <a th:href="@{/recipes}" class="flex items-center gap-1 text-sm text-primary hover:text-primary-400">
+            <span class="material-symbols-outlined text-lg">arrow_back</span>
+            <span>Back to list</span>
+        </a>
+    </div>
+
+    <form th:action="@{${formAction}}" method="post" th:object="${recipe}" class="grid gap-6">
+        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+
+        <!-- Basic Info Card -->
+        <div class="card">
+            <h2 class="text-white text-lg font-bold mb-4">Basic Information</h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Name</label>
+                    <input type="text" th:field="*{name}" class="form-input-dark w-full" placeholder="My Scraper Recipe"/>
+                    <p class="text-xs text-red-400 mt-1" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Key</label>
+                    <input type="text" th:field="*{key}" class="form-input-dark w-full" placeholder="my-scraper-recipe"/>
+                    <p class="text-xs text-red-400 mt-1" th:if="${#fields.hasErrors('key')}" th:errors="*{key}"></p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-zinc-300 mb-2">Description</label>
+                <input type="text" th:field="*{description}" class="form-input-dark w-full" placeholder="Brief description of what this recipe scrapes"/>
+            </div>
+            <div class="mt-4 flex items-center gap-2">
+                <input type="checkbox" th:field="*{enabled}" class="form-checkbox h-4 w-4 rounded bg-white/5 border-zinc-700 text-primary focus:ring-primary"/>
+                <label class="text-sm text-zinc-300">Enabled</label>
+            </div>
+        </div>
+
+        <!-- YAML Editor Card -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <label class="text-white text-lg font-bold">YAML Configuration</label>
+                <span class="text-xs text-zinc-400">Structure your scrape with clarity</span>
+            </div>
+            <textarea th:field="*{yamlContent}" rows="14"
+                      class="form-input-dark w-full font-mono text-sm scrollbar-dark"
+                      placeholder="name: Example Recipe&#10;description: Scrapes data from example.com&#10;match:&#10;  domains: [example.com]&#10;options:&#10;  stripCss: true&#10;page:&#10;  fields:&#10;    - name: title&#10;      selectors: [h1]"></textarea>
+            <p class="text-xs text-red-400 mt-1" th:if="${#fields.hasErrors('yamlContent')}" th:errors="*{yamlContent}"></p>
+        </div>
+
+        <!-- Example Recipes Section -->
+        <section class="card">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary">lightbulb</span>
+                    <div>
+                        <h2 class="text-white text-base font-bold leading-tight">Example Recipes</h2>
+                        <p class="text-xs text-zinc-400">Jumpstart with curated YAML templates.</p>
+                    </div>
+                </div>
+                <button type="button"
+                        class="btn btn-secondary flex items-center gap-1 sm:ml-auto"
+                        data-modal-target="example-recipes-modal"
+                        data-modal-action="open">
+                    <span class="material-symbols-outlined text-base">visibility</span>
+                    <span>Browse Examples</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-3">
+            <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-outlined text-lg">save</span>
+                <span>Save Recipe</span>
+            </button>
+            <div class="flex flex-wrap items-center gap-2 flex-1">
+                <input type="text" id="testUrl" name="url"
+                       placeholder="https://example.com"
+                       class="form-input-dark flex-1 min-w-[200px]"/>
+                <button type="button"
+                        id="testRecipeButton"
+                        class="btn bg-zinc-800 text-white hover:bg-zinc-700">
+                    <span class="material-symbols-outlined text-lg">play_arrow</span>
+                    <span>Test Recipe</span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Test Output Section -->
+    <section class="mt-8">
+        <h2 class="text-white text-xl font-bold mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined">science</span>
+            <span>Test Output</span>
+        </h2>
+        <div th:replace="~{fragments/recipe-test-result :: test-result(structured=${structured}, processedHtml=${processedHtml}, processedMarkdown=${processedMarkdown}, progressSteps=${progressSteps}, testStatus=${testStatus})}"></div>
+    </section>
+
+    <!-- Recipe Test Status Modal -->
+    <div id="recipe-test-status-modal"
+         class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm"
+         data-modal-root
+         aria-hidden="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="w-full max-w-xl rounded-2xl border border-zinc-800 bg-zinc-900/95 shadow-2xl">
+                <div class="flex items-start justify-between border-b border-zinc-800 px-6 py-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-white text-lg font-bold">Recipe Test Progress</h3>
+                            <span data-status-pill
+                                  class="hidden rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary"></span>
+                        </div>
+                        <p class="text-xs text-zinc-400 mt-1" data-status-message>We are starting your recipe test.</p>
+                    </div>
+                    <button type="button"
+                            class="text-zinc-400 hover:text-white"
+                            data-modal-target="recipe-test-status-modal"
+                            data-modal-action="close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="px-6 py-5 space-y-4">
+                    <div data-status-error class="hidden rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs text-red-300"></div>
+                    <ol data-status-steps class="space-y-3"></ol>
+                </div>
+                <div class="flex items-center justify-between border-t border-zinc-800 px-6 py-4">
+                    <span class="text-xs text-zinc-500" data-status-hint>Cancel at any time if you need to adjust your YAML.</span>
+                    <div class="flex items-center gap-2">
+                        <button type="button"
+                                id="cancelTestButton"
+                                class="btn bg-red-600 text-white hover:bg-red-500">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                            <span>Cancel</span>
+                        </button>
+                        <button type="button"
+                                id="closeTestButton"
+                                class="btn btn-secondary hidden"
+                                data-modal-target="recipe-test-status-modal"
+                                data-modal-action="close">
+                            <span class="material-symbols-outlined text-sm">check</span>
+                            <span>Close</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Example Recipes Modal -->
+    <th:block th:insert="~{fragments/example-recipes-modal :: example-recipes-modal(${recipeExamples})}"></th:block>
+
+    <script>
+        (function () {
+            const testButton = document.getElementById('testRecipeButton');
+            const yamlField = document.querySelector('[name="yamlContent"]');
+            const urlField = document.getElementById('testUrl');
+            const modalId = 'recipe-test-status-modal';
+            const stepsContainer = document.querySelector('[data-status-steps]');
+            const messageEl = document.querySelector('[data-status-message]');
+            const errorEl = document.querySelector('[data-status-error]');
+            const statusPill = document.querySelector('[data-status-pill]');
+            const hintEl = document.querySelector('[data-status-hint]');
+            const cancelButton = document.getElementById('cancelTestButton');
+            const closeButton = document.getElementById('closeTestButton');
+            const csrfTokenField = document.querySelector('input[name="_csrf"]');
+            const csrfToken = csrfTokenField ? csrfTokenField.value : null;
+            let activeSessionId = null;
+            let pollHandle = null;
+
+            const terminalSteps = [
+                'Starting scrape for',
+                'Fetched raw HTML',
+                'Processed DOM and collected hrefs',
+                'Extracted structured data',
+                'Converted processed HTML to Markdown'
+            ];
+
+            function setTestButtonBusy(busy) {
+                if (!testButton) {
+                    return;
+                }
+                testButton.disabled = busy;
+                testButton.classList.toggle('opacity-60', busy);
+                testButton.classList.toggle('cursor-not-allowed', busy);
+            }
+
+            function resetModal() {
+                clearTimeout(pollHandle);
+                pollHandle = null;
+                activeSessionId = null;
+                stepsContainer.innerHTML = '';
+                messageEl.textContent = 'We are starting your recipe test.';
+                if (errorEl) {
+                    errorEl.classList.add('hidden');
+                    errorEl.textContent = '';
+                }
+                if (statusPill) {
+                    statusPill.classList.add('hidden');
+                    statusPill.textContent = '';
+                }
+                if (hintEl) {
+                    hintEl.textContent = 'Cancel at any time if you need to adjust your YAML.';
+                }
+                cancelButton.disabled = false;
+                cancelButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                cancelButton.querySelector('span:last-child').textContent = 'Cancel';
+                closeButton.classList.add('hidden');
+            }
+
+            function iconForState(state) {
+                if (state === 'COMPLETED') {
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined text-green-400 text-lg mt-0.5';
+                    icon.textContent = 'check_circle';
+                    return icon;
+                }
+                if (state === 'FAILED') {
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined text-red-400 text-lg mt-0.5';
+                    icon.textContent = 'error';
+                    return icon;
+                }
+                if (state === 'CANCELLED') {
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined text-yellow-300 text-lg mt-0.5';
+                    icon.textContent = 'cancel';
+                    return icon;
+                }
+                if (state === 'RUNNING') {
+                    const spinner = document.createElement('span');
+                    spinner.className = 'inline-flex h-4 w-4 rounded-full border-2 border-primary/70 border-t-transparent animate-spin mt-1';
+                    return spinner;
+                }
+                const pending = document.createElement('span');
+                pending.className = 'mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-zinc-700';
+                return pending;
+            }
+
+            function renderSteps(data) {
+                if (!stepsContainer) {
+                    return;
+                }
+                stepsContainer.innerHTML = '';
+                const steps = data && Array.isArray(data.steps) ? data.steps : [];
+                
+                // Add progress bar
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'mb-4';
+                
+                const progressLabel = document.createElement('div');
+                progressLabel.className = 'flex justify-between text-xs text-zinc-400 mb-2';
+                
+                const completedSteps = steps.filter(s => s.state === 'COMPLETED').length;
+                const totalSteps = steps.length;
+                const progressPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+                
+                progressLabel.innerHTML = `<span>Progress</span><span>${completedSteps}/${totalSteps} steps (${progressPercent}%)</span>`;
+                
+                const progressBar = document.createElement('div');
+                progressBar.className = 'w-full bg-zinc-800 rounded-full h-2';
+                
+                const progressFill = document.createElement('div');
+                progressFill.className = 'bg-primary h-2 rounded-full transition-all duration-300';
+                progressFill.style.width = `${progressPercent}%`;
+                
+                progressBar.appendChild(progressFill);
+                progressContainer.append(progressLabel, progressBar);
+                stepsContainer.appendChild(progressContainer);
+                
+                // Add current status with spinner
+                const currentStep = steps.find(s => s.state === 'RUNNING');
+                if (currentStep) {
+                    const statusContainer = document.createElement('div');
+                    statusContainer.className = 'flex items-center gap-3 p-4 rounded-lg bg-zinc-800/50';
+                    
+                    const spinner = document.createElement('div');
+                    spinner.className = 'inline-flex h-4 w-4 rounded-full border-2 border-primary/70 border-t-transparent animate-spin';
+                    
+                    const statusText = document.createElement('span');
+                    statusText.className = 'text-sm text-zinc-300';
+                    statusText.textContent = currentStep.label;
+                    
+                    statusContainer.append(spinner, statusText);
+                    stepsContainer.appendChild(statusContainer);
+                }
+            }
+
+            function getStepTextColor(state) {
+                switch (state) {
+                    case 'COMPLETED': return 'text-green-300';
+                    case 'RUNNING': return 'text-primary';
+                    case 'FAILED': return 'text-red-300';
+                    case 'CANCELLED': return 'text-yellow-300';
+                    default: return 'text-zinc-400';
+                }
+            }
+
+            function applyStatusPill(status) {
+                if (!statusPill) {
+                    return;
+                }
+                const statusMap = {
+                    PENDING: { text: 'Pending', classes: 'bg-zinc-800 text-zinc-300' },
+                    RUNNING: { text: 'Running', classes: 'bg-primary/20 text-primary' },
+                    COMPLETED: { text: 'Completed', classes: 'bg-green-500/20 text-green-300' },
+                    FAILED: { text: 'Failed', classes: 'bg-red-500/20 text-red-300' },
+                    CANCELLED: { text: 'Cancelled', classes: 'bg-yellow-500/20 text-yellow-200' }
+                };
+                const config = statusMap[status] || statusMap.PENDING;
+                statusPill.className = `rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${config.classes}`;
+                statusPill.textContent = config.text;
+                statusPill.classList.remove('hidden');
+            }
+
+            function renderSession(data) {
+                if (!data) {
+                    return;
+                }
+                applyStatusPill(data.status);
+                renderSteps(data);
+                if (errorEl) {
+                    if (data.errorMessage) {
+                        errorEl.textContent = data.errorMessage;
+                        errorEl.classList.remove('hidden');
+                    } else {
+                        errorEl.classList.add('hidden');
+                        errorEl.textContent = '';
+                    }
+                }
+                if (messageEl) {
+                    const summaries = {
+                        PENDING: 'Preparing your recipe test session...',
+                        RUNNING: data.cancelRequested ? 'Cancelling recipe test...' : 'Processing the recipe and updating steps in real time.',
+                        COMPLETED: 'Recipe test finished. Review the output below.',
+                        FAILED: 'Recipe test encountered an error. Review the details below.',
+                        CANCELLED: 'Recipe test was cancelled.'
+                    };
+                    messageEl.textContent = summaries[data.status] || summaries.PENDING;
+                }
+                if (hintEl) {
+                    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(data.status)) {
+                        hintEl.textContent = 'You can close this dialog to continue refining your recipe.';
+                    } else {
+                        hintEl.textContent = data.cancelRequested ? 'Hang tight while we stop the current run.' : 'Cancel at any time if you need to adjust your YAML.';
+                    }
+                }
+                if (cancelButton) {
+                    const cancellable = Boolean(data.cancellable) && !data.cancelRequested;
+                    cancelButton.disabled = !cancellable;
+                    cancelButton.classList.toggle('opacity-60', !cancellable);
+                    cancelButton.classList.toggle('cursor-not-allowed', !cancellable);
+                    cancelButton.querySelector('span:last-child').textContent = data.cancelRequested ? 'Cancelling' : 'Cancel';
+                }
+                if (closeButton) {
+                    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(data.status)) {
+                        closeButton.classList.remove('hidden');
+                    }
+                }
+            }
+
+            async function pollStatus() {
+                if (!activeSessionId) {
+                    return;
+                }
+                try {
+                    const response = await fetch(`/recipes/test/${activeSessionId}/status`, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch status');
+                    }
+                    const data = await response.json();
+                    renderSession(data);
+                    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(data.status)) {
+                        setTestButtonBusy(false);
+                        await fetchResult();
+                        return;
+                    }
+                } catch (error) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Unable to refresh status. Retrying...';
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+                pollHandle = window.setTimeout(pollStatus, 1200);
+            }
+
+            async function fetchResult() {
+                if (!activeSessionId) {
+                    return;
+                }
+                try {
+                    const response = await fetch(`/recipes/test/${activeSessionId}/result`, {
+                        headers: { 'HX-Request': 'true' }
+                    });
+                    if (response.status === 202) {
+                        pollHandle = window.setTimeout(fetchResult, 800);
+                        return;
+                    }
+                    if (!response.ok) {
+                        throw new Error('Failed to load test result');
+                    }
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const replacement = doc.querySelector('#testResult');
+                    const target = document.getElementById('testResult');
+                    if (replacement && target) {
+                        target.replaceWith(replacement);
+                        if (typeof bindTabButtons === 'function') {
+                            bindTabButtons(replacement);
+                        }
+                    }
+                } catch (error) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Unable to load the latest test output.';
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            }
+
+            async function startTest() {
+                if (!yamlField || !urlField) {
+                    return;
+                }
+                resetModal();
+                setTestButtonBusy(true);
+                const urlValue = urlField.value.trim();
+                const initialSteps = terminalSteps.map((label, index) => ({
+                    label: index === 0 ? `${label} ${urlValue || ''}`.trim() : label,
+                    state: 'PENDING'
+                }));
+                renderSession({
+                    status: 'PENDING',
+                    steps: initialSteps,
+                    cancellable: true,
+                    cancelRequested: false
+                });
+                toggleModal(modalId, 'open');
+                const formData = new FormData();
+                formData.append('yamlContent', yamlField.value);
+                formData.append('url', urlValue);
+                try {
+                    const response = await fetch('/recipes/test', {
+                        method: 'POST',
+                        body: formData,
+                        headers: csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : undefined
+                    });
+                    if (!response.ok) {
+                        throw new Error(await response.text() || 'Failed to start test');
+                    }
+                    const payload = await response.json();
+                    activeSessionId = payload.sessionId;
+                    pollStatus();
+                } catch (error) {
+                    setTestButtonBusy(false);
+                    if (errorEl) {
+                        errorEl.textContent = 'Unable to start test: ' + (error.message || 'Unknown error');
+                        errorEl.classList.remove('hidden');
+                    }
+                    cancelButton.disabled = true;
+                    cancelButton.classList.add('opacity-60', 'cursor-not-allowed');
+                    closeButton.classList.remove('hidden');
+                }
+            }
+
+            async function cancelTest() {
+                if (!activeSessionId || cancelButton.disabled) {
+                    return;
+                }
+                cancelButton.disabled = true;
+                cancelButton.classList.add('opacity-60', 'cursor-not-allowed');
+                cancelButton.querySelector('span:last-child').textContent = 'Cancelling';
+                try {
+                    await fetch(`/recipes/test/${activeSessionId}/cancel`, {
+                        method: 'POST',
+                        headers: csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : undefined
+                    });
+                } catch (error) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Unable to cancel right now. We will keep trying.';
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            }
+
+            if (testButton) {
+                testButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    startTest();
+                });
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    cancelTest();
+                });
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('click', () => {
+                    setTestButtonBusy(false);
+                    resetModal();
+                });
+            }
+
+            document.addEventListener('click', (event) => {
+                const target = event.target.closest('[data-modal-action="close"][data-modal-target="recipe-test-status-modal"]');
+                if (target) {
+                    setTestButtonBusy(false);
+                    resetModal();
+                }
+            });
+        })();
+    </script>
+</main>
+</html>

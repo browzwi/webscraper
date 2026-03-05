@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main th:fragment="resultsFragment">
+    <div th:if="${job != null}">
+        <div class="card mb-6 bg-zinc-900/50 border border-zinc-800">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h3 class="text-white text-lg font-bold mb-1">
+                        Discovery Results for "<span th:text="${job.keyword}"></span>"
+                    </h3>
+                    <p class="text-zinc-400 text-sm">
+                        Location: <span class="text-zinc-300" th:text="${job.location}"></span>
+                        &bull; Source: <span class="text-zinc-300" th:text="${job.discoverySource}"></span>
+                        &bull; Found: <span class="text-primary font-bold" th:text="${job.resultsCount}"></span> businesses
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a th:href="@{/discovery/{id}/export(id=${job.id})}"
+                       class="btn btn-secondary">
+                        <span class="material-symbols-outlined text-lg">download</span>
+                        <span>Export Excel</span>
+                    </a>
+                    <a href="/discovery" class="btn btn-ghost">
+                        <span class="material-symbols-outlined text-lg">arrow_back</span>
+                        <span>New Search</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 class="text-white text-lg font-bold mb-4">Discovered Businesses</h3>
+
+            <div class="overflow-x-auto">
+                <table class="table-dark w-full">
+                    <thead>
+                    <tr>
+                        <th class="text-left">Business Name</th>
+                        <th class="text-left">Address</th>
+                        <th class="text-left">Email</th>
+                        <th class="text-left">Social Media</th>
+                        <th class="text-left">Phone</th>
+                        <th class="text-left">Website</th>
+                        <th class="text-left">Status</th>
+                        <th class="text-left">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="business : ${businesses}">
+                        <td class="text-white font-medium" th:text="${business.businessName}"></td>
+                        <td class="text-zinc-300 text-sm" th:text="${business.address}"></td>
+                        <td>
+                            <a th:if="${business.emailAddress != null && !business.emailAddress.isEmpty()}"
+                               th:href="'mailto:' + ${business.emailAddress}"
+                               class="text-primary hover:text-primary-400 text-sm"
+                               th:text="${business.emailAddress}"></a>
+                            <span th:unless="${business.emailAddress != null && !business.emailAddress.isEmpty()}"
+                                  class="text-zinc-500 text-sm">Not found</span>
+                        </td>
+                        <td>
+                            <div th:if="${business.socialMediaLinks != null && !business.socialMediaLinks.isEmpty()}"
+                                 class="flex items-center gap-2">
+                                <a th:each="link : ${#strings.arraySplit(business.socialMediaLinks, ',')}"
+                                   th:href="${link}"
+                                   target="_blank"
+                                   class="text-zinc-400 hover:text-primary transition-colors">
+                                    <span class="material-symbols-outlined text-sm"
+                                          th:title="${link}">link</span>
+                                </a>
+                            </div>
+                            <span th:unless="${business.socialMediaLinks != null && !business.socialMediaLinks.isEmpty()}"
+                                  class="text-zinc-500 text-sm">None</span>
+                        </td>
+                        <td class="text-zinc-300 text-sm" th:text="${business.phoneNumber}"></td>
+                        <td>
+                            <a th:if="${business.websiteUrl != null && !business.websiteUrl.isEmpty()}"
+                               th:href="${business.websiteUrl}"
+                               target="_blank"
+                               class="text-primary hover:text-primary-400 text-sm truncate max-w-xs block"
+                               th:text="${business.websiteUrl}"></a>
+                            <span th:unless="${business.websiteUrl != null && !business.websiteUrl.isEmpty()}"
+                                  class="text-zinc-500 text-sm">No website</span>
+                        </td>
+                        <td>
+                            <span th:class="${'badge ' + 
+                                (business.status == 'SCRAPED' ? 'badge-success' : 
+                                business.status == 'FAILED' ? 'badge-error' : 'badge-neutral')}"
+                                  th:text="${business.status}"></span>
+                        </td>
+                        <td>
+                            <form th:if="${business.status != 'SCRAPED'}"
+                                  th:action="@{/discovery/business/{id}/scrape(id=${business.id})}"
+                                  method="post"
+                                  class="inline">
+                                <button type="submit" class="text-sm text-primary hover:text-primary-400 font-medium">
+                                    Scrape Website
+                                </button>
+                            </form>
+                            <span th:unless="${business.status != 'SCRAPED'}"
+                                  class="text-zinc-500 text-sm">Done</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div th:if="${#lists.isEmpty(businesses)}" class="text-center py-8">
+                <span class="material-symbols-outlined text-4xl text-zinc-600">inbox</span>
+                <p class="text-zinc-400 mt-2">No businesses discovered yet.</p>
+            </div>
+        </div>
+    </div>
+</main>
+</html>

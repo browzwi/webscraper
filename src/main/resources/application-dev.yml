@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/webscraper
+    username: root
+    password: secret
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+webscraper:
+  security:
+    admin:
+      username: admin
+      plain-password: admin
+  fetcher:
+    playwright:
+      browser: chromium
+      headless: true
+      timeout: 20000

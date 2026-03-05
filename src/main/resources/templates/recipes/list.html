@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<main>
+    <!-- Page Heading -->
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-white text-md md:text-lg font-black leading-tight tracking-tight">Recipes</h1>
+            <p class="text-zinc-400 text-base mt-1">Manage YAML-based scraping recipes and validate them quickly.</p>
+        </div>
+        <a class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary hover:bg-primary-700 text-white text-sm font-bold leading-normal tracking-wide gap-2 transition-colors"
+           th:href="@{/recipes/new}">
+            <span class="material-symbols-outlined text-lg">add</span>
+            <span>New Recipe</span>
+        </a>
+    </div>
+
+    <!-- Alerts -->
+    <div th:if="${message}" class="mb-6 bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl flex items-center gap-2">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span th:text="${message}"></span>
+    </div>
+    <div th:if="${error}" class="mb-6 bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl flex items-center gap-2">
+        <span class="material-symbols-outlined">error</span>
+        <span th:text="${error}"></span>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl flex flex-col overflow-hidden">
+        <div class="p-6 border-b border-zinc-800">
+            <p class="text-white text-lg font-bold leading-tight">Recipe Library</p>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="flex justify-between items-center gap-2 px-6 py-4 border-b border-zinc-800">
+            <div class="relative w-full max-w-xs">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <span class="material-symbols-outlined text-white/40 text-xl">search</span>
+                </div>
+                <input class="form-input-dark pl-10" placeholder="Filter recipes..." type="text" id="recipeFilter"
+                       hx-get="/recipes/filter"
+                       hx-trigger="keyup changed delay:300ms"
+                       hx-target="#recipesTableBody"
+                       hx-include="[name='filter']"
+                       name="filter"/>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="table-dark">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Key</th>
+                        <th>Enabled</th>
+                        <th>Updated At</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="recipesTableBody">
+                    <tr th:each="recipe : ${recipes}">
+                        <td class="text-white font-medium" th:text="${recipe.name}"></td>
+                        <td class="text-white/70" th:text="${recipe.key}"></td>
+                        <td>
+                            <span th:if="${recipe.enabled}"
+                                  class="badge badge-success">
+                                <span class="status-dot status-dot-success"></span>
+                                Enabled
+                            </span>
+                            <span th:unless="${recipe.enabled}"
+                                  class="badge badge-neutral">
+                                Disabled
+                            </span>
+                        </td>
+                        <td class="text-white/70" th:text="${#temporals.format(recipe.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
+                        <td>
+                            <div class="flex items-center justify-end gap-2">
+                                <a th:href="@{'/recipes/' + ${recipe.id}}"
+                                   class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                   title="Edit recipe">
+                                    <span class="material-symbols-outlined text-lg">edit</span>
+                                </a>
+                                <button class="h-8 w-8 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                        title="Test recipe"
+                                        hx-get="/recipes/test-dialog"
+                                        hx-vals="js:{recipeId: '[[${recipe.id}]]'}"
+                                        hx-target="body"
+                                        hx-swap="beforeend">
+                                    <span class="material-symbols-outlined text-lg">play_arrow</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${recipes.isEmpty()}">
+                        <td colspan="5" class="text-center text-white/50 py-8">
+                            <div class="flex flex-col items-center gap-2">
+                                <span class="material-symbols-outlined text-4xl">folder_open</span>
+                                <p>No recipes available yet.</p>
+                                <a th:href="@{/recipes/new}" class="text-primary hover:text-primary-400">Create your first recipe</a>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</html>

@@ -1,0 +1,79 @@
+<div th:fragment="example-recipes-modal(recipeExamples)"
+     id="example-recipes-modal"
+     class="hidden"
+     aria-hidden="true"
+     data-modal-root>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black/70 backdrop-blur-sm"
+             data-modal-target="example-recipes-modal"
+             data-modal-action="close"></div>
+
+        <!-- Modal Content -->
+        <div class="relative z-10 bg-background-dark border border-zinc-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-zinc-800">
+                <h2 class="text-white text-lg font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">lightbulb</span>
+                    <span>Example Recipes</span>
+                </h2>
+                <button type="button"
+                        class="text-zinc-400 hover:text-white"
+                        data-modal-target="example-recipes-modal"
+                        data-modal-action="close"
+                        aria-label="Close examples modal">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="mb-6 text-sm text-zinc-400">
+                    <p>Preview curated configurations and apply them directly to your editor.</p>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div th:each="example : ${recipeExamples}"
+                         class="bg-zinc-900/50 rounded-xl border border-zinc-800 p-4 flex flex-col hover:border-zinc-700 transition-colors">
+                        <div>
+                            <p class="text-sm font-semibold text-white" th:text="${example.title}"></p>
+                            <p class="text-xs text-zinc-400 mt-1" th:text="${example.description}"></p>
+                        </div>
+                        <pre class="mt-3 text-xs bg-black/50 text-zinc-300 rounded-lg p-3 overflow-auto flex-1 font-mono scrollbar-dark"
+                             th:text="${example.yaml}"></pre>
+                        <div class="mt-3 flex items-center justify-end gap-2">
+                            <button type="button"
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-primary/40 bg-primary/15 text-primary transition-colors hover:bg-primary/25"
+                                    th:attr="data-yaml=${example.yaml}"
+                                    data-modal-target="example-recipes-modal"
+                                    data-modal-action="close"
+                                    onclick="insertYaml(this)"
+                                    title="Apply example to editor">
+                                <span class="material-symbols-outlined text-base">download</span>
+                                <span class="sr-only">Apply example to editor</span>
+                            </button>
+                            <button type="button"
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900/60 text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+                                    th:attr="data-yaml=${example.yaml}"
+                                    onclick="copyYaml(this)"
+                                    title="Copy YAML to clipboard">
+                                <span class="material-symbols-outlined text-base">content_copy</span>
+                                <span class="sr-only">Copy YAML to clipboard</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-zinc-800 text-center">
+                <button type="button"
+                        class="text-sm text-zinc-400 hover:text-white"
+                        data-modal-target="example-recipes-modal"
+                        data-modal-action="close">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
