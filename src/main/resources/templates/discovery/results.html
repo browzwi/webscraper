@@ -38,7 +38,6 @@
                         <th class="text-left">Business Name</th>
                         <th class="text-left">Address</th>
                         <th class="text-left">Email</th>
-                        <th class="text-left">Social Media</th>
                         <th class="text-left">Phone</th>
                         <th class="text-left">Website</th>
                         <th class="text-left">Status</th>
@@ -56,20 +55,6 @@
                                th:text="${business.emailAddress}"></a>
                             <span th:unless="${business.emailAddress != null && !business.emailAddress.isEmpty()}"
                                   class="text-zinc-500 text-sm">Not found</span>
-                        </td>
-                        <td>
-                            <div th:if="${business.socialMediaLinks != null && !business.socialMediaLinks.isEmpty()}"
-                                 class="flex items-center gap-2">
-                                <a th:each="link : ${#strings.arraySplit(business.socialMediaLinks, ',')}"
-                                   th:href="${link}"
-                                   target="_blank"
-                                   class="text-zinc-400 hover:text-primary transition-colors">
-                                    <span class="material-symbols-outlined text-sm"
-                                          th:title="${link}">link</span>
-                                </a>
-                            </div>
-                            <span th:unless="${business.socialMediaLinks != null && !business.socialMediaLinks.isEmpty()}"
-                                  class="text-zinc-500 text-sm">None</span>
                         </td>
                         <td class="text-zinc-300 text-sm" th:text="${business.phoneNumber}"></td>
                         <td>

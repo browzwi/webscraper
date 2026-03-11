@@ -50,7 +50,11 @@ public class UrlDiscoveryService {
     }
 
     @Transactional
-    public DiscoveryJob discover(String keyword, String location) {
+    public DiscoveryJob discover(String keyword, String location, Integer maxResults) {
+        if (maxResults == null || maxResults < 1) {
+            maxResults = 100;
+        }
+        
         DiscoveryJob job = new DiscoveryJob();
         job.setKeyword(keyword);
         job.setLocation(location);
@@ -62,10 +66,13 @@ public class UrlDiscoveryService {
         String source = settingsService.getDiscoverySourceType();
 
         if ("GOOGLE_SEARCH".equals(source)) {
-            results = googleSearchDiscoveryService.discover(keyword, location);
+            results = googleSearchDiscoveryService.discover(keyword, location, maxResults);
             job.setDiscoverySource("GOOGLE_SEARCH");
+        } else if ("GMAPS_GOOGLE_SEARCH".equals(source)) {
+            results = discoverViaMapsAndSearch(keyword, location, maxResults);
+            job.setDiscoverySource("GMAPS_GOOGLE_SEARCH");
         } else {
-            results = discoverViaGoogleMaps(keyword, location);
+            results = discoverViaGoogleMaps(keyword, location, maxResults);
             job.setDiscoverySource("GOOGLE_MAPS");
         }
 
@@ -79,7 +86,7 @@ public class UrlDiscoveryService {
         return job;
     }
 
-    private List<DiscoveredBusiness> discoverViaGoogleMaps(String keyword, String location) {
+    private List<DiscoveredBusiness> discoverViaGoogleMaps(String keyword, String location, Integer maxResults) {
         String searchQuery = URLEncoder.encode(keyword + " " + location, StandardCharsets.UTF_8);
         String mapsUrl = "https://www.google.com/maps/search/" + searchQuery;
 
@@ -98,7 +105,7 @@ public class UrlDiscoveryService {
             Locator resultsPanel = page.locator("div[role='feed']").first();
             
             log.info("Scrolling to load more results...");
-            for (int scroll = 0; scroll < 20; scroll++) {
+            for (int scroll = 0; scroll < 50; scroll++) {
                 try {
                     resultsPanel.evaluate("element => element.scrollTo(0, element.scrollHeight)");
                     Thread.sleep(2000);
@@ -106,8 +113,8 @@ public class UrlDiscoveryService {
                     List<Locator> currentCards = page.locator("div[role='article']").all();
                     log.info("Scroll {}: Found {} business cards", scroll + 1, currentCards.size());
                     
-                    if (currentCards.size() >= 100) {
-                        log.info("Reached 100 results, stopping scroll");
+                    if (currentCards.size() >= maxResults) {
+                        log.info("Reached {} results, stopping scroll", maxResults);
                         break;
                     }
                     
@@ -129,7 +136,7 @@ public class UrlDiscoveryService {
             List<Locator> businessCards = page.locator("div[role='article']").all();
             log.info("Total business cards found after scrolling: {}", businessCards.size());
 
-            int limit = Math.min(businessCards.size(), 100);
+            int limit = Math.min(businessCards.size(), maxResults);
             for (int i = 0; i < limit; i++) {
                 Locator card = businessCards.get(i);
                 try {
@@ -205,6 +212,41 @@ public class UrlDiscoveryService {
             throw new RuntimeException("Google Maps scraping failed: " + e.getMessage());
         }
 
+        return businesses;
+    }
+
+    private List<DiscoveredBusiness> discoverViaMapsAndSearch(String keyword, String location, Integer maxResults) {
+        log.info("Starting combined Google Maps + Search discovery");
+        
+        List<DiscoveredBusiness> businesses = discoverViaGoogleMaps(keyword, location, maxResults);
+        log.info("Found {} businesses from Google Maps", businesses.size());
+        
+        int enhanced = 0;
+        for (DiscoveredBusiness business : businesses) {
+            try {
+                log.info("Searching Google for: {}", business.getBusinessName());
+                List<DiscoveredBusiness> searchResults = 
+                    googleSearchDiscoveryService.discover(business.getBusinessName(), location, 1);
+                
+                if (!searchResults.isEmpty()) {
+                    DiscoveredBusiness searchResult = searchResults.get(0);
+                    
+                    // Keep Google Maps data (phone, address) and add Google Search links
+                    if (searchResult.getWebsiteUrl() != null && !searchResult.getWebsiteUrl().isBlank()) {
+                        business.setWebsiteUrl(searchResult.getWebsiteUrl());
+                        enhanced++;
+                        log.info("Enhanced {} with links: {}", business.getBusinessName(), 
+                            searchResult.getWebsiteUrl().substring(0, Math.min(100, searchResult.getWebsiteUrl().length())));
+                    }
+                }
+                
+                Thread.sleep(2000);
+            } catch (Exception e) {
+                log.warn("Failed to enhance business {}: {}", business.getBusinessName(), e.getMessage());
+            }
+        }
+        
+        log.info("Enhanced {}/{} businesses with Google Search data", enhanced, businesses.size());
         return businesses;
     }
 

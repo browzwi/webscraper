@@ -20,18 +20,32 @@ A Spring Boot-based web scraping platform with a modern web interface built usin
 
 ## Features
 
+### Core Scraping
 - **Visual Recipe Builder**: Create scraping recipes using YAML configuration with visual form interface
 - **Multi-Page Scraping**: Support for navigating and scraping multiple pages with sub-page configurations
 - **Dynamic Content Support**: Choose between HtmlUnit (fast, lightweight) or Playwright (full browser automation) for JavaScript-heavy sites
 - **Scheduled Jobs**: Quartz-based scheduler for automated recurring scraping tasks
 - **Real-Time Progress Tracking**: Monitor scraping progress with detailed target-level status updates
 - **Markdown Conversion**: Automatic HTML-to-Markdown conversion for clean output
-- **Data Export**: Structured JSON data storage with filesystem persistence
+- **Data Export**: Structured JSON data storage with filesystem persistence (JSON, CSV, Excel)
+
+### URL Discovery (NEW! March 2026)
+- **Google Maps Integration**: Auto-discover businesses from Google Maps by keyword + location
+- **Google Search Integration**: Alternative discovery via Google Search results
+- **Combined Mode**: Use both Google Maps + Google Search for comprehensive coverage
+- **AI-Powered Search**: Optional Claude AI integration for enhanced result extraction
+- **Business Data Extraction**: Automatically collect:
+  - Business name & address
+  - Phone numbers
+  - Website URLs
+  - Email addresses (scraped from websites)
+  - Social media links (Facebook, Instagram, LinkedIn, etc.)
+
+### Platform Features
 - **User Authentication**: Spring Security with database-backed user management
 - **Responsive UI**: Modern, mobile-friendly interface with HTMX-powered partial updates
 - **Error Handling**: Comprehensive error pages and validation feedback
-- **URL Discovery**: Auto-discover businesses from Google Maps or Google Search (no API keys required)
-- **Email & Social Media Extraction**: Automatically extract contact info from business websites
+- **Settings Management**: Configurable discovery sources, API keys, and scraping parameters
 
 ## Technology Stack
 
@@ -52,8 +66,14 @@ A Spring Boot-based web scraping platform with a modern web interface built usin
 - **JavaScript** - Minimal client-side interactions
 
 ### Scraping Engines
-- **HtmlUnit** - Headless browser for static sites
-- **Playwright** - Full browser automation for dynamic sites (Chromium)
+- **HtmlUnit 2.70.0** - Headless browser for static sites
+- **Playwright 1.46.0** - Full browser automation for dynamic sites (Chromium)
+- **Jsoup 1.18.1** - HTML parsing and CSS selector extraction
+
+### Additional Libraries
+- **Flexmark 0.64.8** - HTML to Markdown conversion
+- **Apache POI 5.2.5** - Excel file generation
+- **Anthropic Claude SDK** - AI-powered search integration
 
 ### Testing
 - **JUnit 5**

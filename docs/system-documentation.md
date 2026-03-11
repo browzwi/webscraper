@@ -1,7 +1,8 @@
 # WebScraper System Documentation
 
-**Version:** 1.0  
-**Date:** March 5, 2026  
+**Version:** 1.0.0
+**Date:** March 10, 2026
+**Last Updated:** March 10, 2026 - URL Discovery Feature Complete
 **Author:** System Documentation
 
 ---
@@ -38,11 +39,13 @@ WebScraper is a Spring Boot-based web scraping platform with a modern web interf
 
 - ✅ Multi-page scraping (main page + sub-pages)
 - ✅ Dual scraping engines (HtmlUnit for static sites, Playwright for JavaScript-heavy sites)
-- ✅ Automatic URL discovery from Google Maps
+- ✅ Automatic URL discovery from **Google Maps**, **Google Search**, or **Combined** mode
 - ✅ Email and social media extraction from business websites
+- ✅ AI-powered search with Claude API integration
 - ✅ Scheduled recurring jobs with cron expressions
 - ✅ Real-time progress tracking
 - ✅ User authentication and authorization
+- ✅ Settings management for discovery sources and API keys
 
 ---
 
@@ -71,9 +74,10 @@ WebScraper is a Spring Boot-based web scraping platform with a modern web interf
 - **Jsoup 1.18.1** - HTML parsing and CSS selector extraction
 
 ### Additional Libraries
-- **Flexmark** - HTML to Markdown conversion
-- **Apache POI** - Excel file generation
+- **Flexmark 0.64.8** - HTML to Markdown conversion
+- **Apache POI 5.2.5** - Excel file generation
 - **OpenCSV** - CSV file generation
+- **Anthropic Claude SDK** - AI-powered search integration
 - **Jackson** - JSON processing
 
 ---

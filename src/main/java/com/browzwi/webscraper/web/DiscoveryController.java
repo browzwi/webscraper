@@ -79,7 +79,7 @@ public class DiscoveryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Keyword and location are required");
         }
 
-        DiscoveryJob job = urlDiscoveryService.discover(form.getKeyword(), form.getLocation());
+        DiscoveryJob job = urlDiscoveryService.discover(form.getKeyword(), form.getLocation(), form.getMaxResults());
 
         websiteScrapeService.enrichMultiple(job.getBusinesses());
 
@@ -160,6 +160,7 @@ public class DiscoveryController {
     public static class DiscoveryForm {
         private String keyword = "";
         private String location = "";
+        private Integer maxResults = 100;
 
         public DiscoveryForm() {
         }
@@ -178,6 +179,14 @@ public class DiscoveryController {
 
         public void setLocation(String location) {
             this.location = location;
+        }
+
+        public Integer getMaxResults() {
+            return maxResults;
+        }
+
+        public void setMaxResults(Integer maxResults) {
+            this.maxResults = maxResults;
         }
     }
 }

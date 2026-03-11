@@ -34,7 +34,7 @@
             </column>
             <column name="address" type="VARCHAR(500)"/>
             <column name="phone_number" type="VARCHAR(100)"/>
-            <column name="website_url" type="VARCHAR(500)"/>
+            <column name="website_url" type="VARCHAR(5000)"/>
             <column name="email_address" type="VARCHAR(255)"/>
             <column name="social_media_links" type="TEXT"/>
             <column name="status" type="VARCHAR(50)">

@@ -39,21 +39,25 @@ public class GoogleSearchDiscoveryService {
         this.settingsService = settingsService;
     }
 
-    public List<DiscoveredBusiness> discover(String keyword, String location) {
+    public List<DiscoveredBusiness> discover(String keyword, String location, Integer maxResults) {
+        if (maxResults == null || maxResults < 1) {
+            maxResults = 30;
+        }
+        
         String claudeApiKey = settingsService.getClaudeApiKey();
         
         // Use Claude AI if API key is configured
         if (claudeApiKey != null && !claudeApiKey.isBlank()) {
             log.info("Using Claude AI for search: {} {}", keyword, location);
-            return discoverWithClaude(keyword, location, claudeApiKey);
+            return discoverWithClaude(keyword, location, claudeApiKey, maxResults);
         }
         
         // Fallback to Playwright scraping
         log.info("Using Playwright for search: {} {}", keyword, location);
-        return discoverWithPlaywright(keyword, location);
+        return discoverWithPlaywright(keyword, location, maxResults);
     }
 
-    private List<DiscoveredBusiness> discoverWithClaude(String keyword, String location, String apiKey) {
+    private List<DiscoveredBusiness> discoverWithClaude(String keyword, String location, String apiKey, Integer maxResults) {
         String siteFilter = settingsService.getGoogleSearchSiteFilter();
         String searchContext = siteFilter != null && !siteFilter.isBlank() 
             ? " focusing on " + siteFilter + " results" 
@@ -62,10 +66,10 @@ public class GoogleSearchDiscoveryService {
         String prompt = String.format(
             "Search Google for '%s %s'%s and extract business information. " +
             "For each result, provide: business name, website URL, and any social media links. " +
-            "Return up to 30 results in this exact JSON format:\n" +
+            "Return up to %d results in this exact JSON format:\n" +
             "[{\"name\":\"Business Name\",\"website\":\"https://example.com\",\"social\":\"Facebook, Instagram\"}]\n" +
             "Only return the JSON array, no other text.",
-            keyword, location, searchContext
+            keyword, location, searchContext, maxResults
         );
 
         try {
@@ -166,7 +170,7 @@ public class GoogleSearchDiscoveryService {
         return businesses;
     }
 
-    private List<DiscoveredBusiness> discoverWithPlaywright(String keyword, String location) {
+    private List<DiscoveredBusiness> discoverWithPlaywright(String keyword, String location, Integer maxResults) {
         String query = keyword + " " + location;
         String siteFilter = settingsService.getGoogleSearchSiteFilter();
         
@@ -232,7 +236,8 @@ public class GoogleSearchDiscoveryService {
                 log.info("Continuing with automated scraping...");
             }
 
-            for (int pageNum = 0; pageNum < MAX_PAGES; pageNum++) {
+            int maxPages = (int) Math.ceil(maxResults / (double) RESULTS_PER_PAGE);
+            for (int pageNum = 0; pageNum < maxPages; pageNum++) {
                 int start = pageNum * RESULTS_PER_PAGE;
                 String searchUrl = "https://www.google.com/search?q=" + encodedQuery + "&start=" + start + "&hl=en";
 
@@ -242,6 +247,11 @@ public class GoogleSearchDiscoveryService {
                     page.navigate(searchUrl, new Page.NavigateOptions().setTimeout(30000));
                 } catch (Exception e) {
                     log.error("Failed to navigate to Google Search: {}", e.getMessage());
+                    break;
+                }
+                
+                if (businesses.size() >= maxResults) {
+                    log.info("Reached max results limit: {}", maxResults);
                     break;
                 }
 
@@ -295,8 +305,12 @@ public class GoogleSearchDiscoveryService {
                 }
 
                 for (Locator block : resultBlocks) {
+                    if (businesses.size() >= maxResults) {
+                        break;
+                    }
+                    
                     try {
-                        DiscoveredBusiness business = extractBusinessFromResult(block);
+                        DiscoveredBusiness business = extractBusinessFromResult(block, keyword);
                         if (business != null) {
                             businesses.add(business);
                             log.info("Extracted: {}", business.getBusinessName());
@@ -306,16 +320,14 @@ public class GoogleSearchDiscoveryService {
                     }
                 }
 
-                if (businesses.size() >= MAX_PAGES * RESULTS_PER_PAGE) {
+                if (businesses.size() >= maxResults) {
                     break;
                 }
             }
 
             log.info("Google Search discovery completed. Found {} businesses", businesses.size());
             
-            // Keep browser open for 5 seconds so you can see results
-            Thread.sleep(5000);
-            context.close();
+            // Keep context open for reuse (persistent browser session)
 
         } catch (Exception e) {
             log.error("Error during Google Search discovery", e);
@@ -325,76 +337,97 @@ public class GoogleSearchDiscoveryService {
         return businesses;
     }
 
-    private DiscoveredBusiness extractBusinessFromResult(Locator resultBlock) {
+    private DiscoveredBusiness extractBusinessFromResult(Locator resultBlock, String expectedBusinessName) {
         try {
-            // Try multiple strategies to find title and link
             String title = null;
-            String href = null;
+            List<String> allLinks = new ArrayList<>();
+            String email = null;
             
-            // Strategy 1: h3 with parent link
+            // Extract title
             try {
                 Locator h3 = resultBlock.locator("h3").first();
                 title = h3.textContent(new Locator.TextContentOptions().setTimeout(3000));
-                Locator titleLink = h3.locator("..").first();
-                href = titleLink.getAttribute("href", new Locator.GetAttributeOptions().setTimeout(3000));
             } catch (Exception e) {
-                log.debug("Strategy 1 failed: {}", e.getMessage());
-            }
-            
-            // Strategy 2: Direct link with aria-label
-            if (title == null || href == null) {
-                try {
-                    Locator link = resultBlock.locator("a[href]").first();
-                    href = link.getAttribute("href", new Locator.GetAttributeOptions().setTimeout(3000));
-                    title = link.getAttribute("aria-label", new Locator.GetAttributeOptions().setTimeout(3000));
-                    if (title == null || title.isBlank()) {
-                        title = link.textContent(new Locator.TextContentOptions().setTimeout(3000));
-                    }
-                } catch (Exception e) {
-                    log.debug("Strategy 2 failed: {}", e.getMessage());
-                }
-            }
-            
-            // Strategy 3: Any heading tag
-            if (title == null) {
                 try {
                     title = resultBlock.locator("h1, h2, h3, h4").first()
                         .textContent(new Locator.TextContentOptions().setTimeout(3000));
-                } catch (Exception e) {
-                    log.debug("Strategy 3 failed: {}", e.getMessage());
+                } catch (Exception e2) {
+                    log.debug("Could not extract title");
                 }
             }
 
-            if (title == null || title.isBlank() || href == null || href.isBlank()) {
+            if (title == null || title.isBlank()) {
                 return null;
             }
 
-            String cleanUrl = cleanGoogleRedirectUrl(href);
-            if (cleanUrl == null || cleanUrl.isBlank()) {
+            // Validate: Check if title matches the expected business name
+            String normalizedTitle = title.toLowerCase().replaceAll("[^a-z0-9]", "");
+            String normalizedExpected = expectedBusinessName.toLowerCase().replaceAll("[^a-z0-9]", "");
+            
+            // Check if at least 50% of the words match
+            if (!normalizedTitle.contains(normalizedExpected.substring(0, Math.min(5, normalizedExpected.length())))) {
+                log.debug("Title '{}' doesn't match expected '{}'", title, expectedBusinessName);
+                return null;
+            }
+
+            // Extract email from text content
+            try {
+                String textContent = resultBlock.textContent();
+                if (textContent != null) {
+                    java.util.regex.Pattern emailPattern = java.util.regex.Pattern.compile(
+                        "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+                    );
+                    java.util.regex.Matcher matcher = emailPattern.matcher(textContent);
+                    if (matcher.find()) {
+                        email = matcher.group();
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("Failed to extract email: {}", e.getMessage());
+            }
+
+            // Extract ALL links from the result block
+            try {
+                List<Locator> links = resultBlock.locator("a[href]").all();
+                for (Locator link : links) {
+                    try {
+                        String href = link.getAttribute("href", new Locator.GetAttributeOptions().setTimeout(1000));
+                        if (href == null || href.isBlank()) continue;
+                        
+                        String cleanUrl = cleanGoogleRedirectUrl(href);
+                        if (cleanUrl == null || cleanUrl.isBlank()) continue;
+                        
+                        // Skip Google Maps and irrelevant links
+                        if (cleanUrl.contains("google.com/maps") || 
+                            cleanUrl.contains("goo.gl/maps") ||
+                            cleanUrl.contains("youtube.com") ||
+                            cleanUrl.contains("translate.google.com")) {
+                            continue;
+                        }
+                        
+                        // Add unique links only
+                        if (!allLinks.contains(cleanUrl)) {
+                            allLinks.add(cleanUrl);
+                        }
+                    } catch (Exception e) {
+                        log.debug("Failed to process link: {}", e.getMessage());
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("Failed to extract links: {}", e.getMessage());
+            }
+
+            if (allLinks.isEmpty() && email == null) {
                 return null;
             }
 
             DiscoveredBusiness business = new DiscoveredBusiness();
             business.setBusinessName(title.trim());
-            business.setWebsiteUrl(cleanUrl);
+            business.setWebsiteUrl(!allLinks.isEmpty() ? String.join("\n", allLinks) : "");
+            business.setEmailAddress(email);
             business.setStatus("DISCOVERED");
             business.setAddress("");
             business.setPhoneNumber("");
-
-            String socialMedia = detectSocialMedia(cleanUrl);
-            if (socialMedia != null) {
-                business.setSocialMediaLinks(socialMedia);
-            }
-
-            try {
-                String snippet = resultBlock.locator("div[data-sncf], div.VwiC3b").first()
-                    .textContent(new Locator.TextContentOptions().setTimeout(3000));
-                if (snippet != null && !snippet.isBlank()) {
-                    log.debug("Snippet: {}", snippet.substring(0, Math.min(100, snippet.length())));
-                }
-            } catch (Exception e) {
-                log.debug("No snippet found");
-            }
 
             return business;
 

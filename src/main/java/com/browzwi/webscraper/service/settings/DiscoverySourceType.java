@@ -16,5 +16,10 @@ public enum DiscoverySourceType {
     /**
      * Scrapes regular Google Search results using Playwright.
      */
-    GOOGLE_SEARCH
+    GOOGLE_SEARCH,
+
+    /**
+     * Scrapes Google Maps first, then enhances results with Google Search.
+     */
+    GMAPS_GOOGLE_SEARCH
 }
