@@ -11,7 +11,9 @@ import com.browzwi.webscraper.repository.DiscoveredBusinessRepository;
 import jakarta.validation.Valid;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -45,21 +47,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class DiscoveryController {
 
     private final UrlDiscoveryService urlDiscoveryService;
-    private final BusinessWebsiteScrapeService websiteScrapeService;
     private final DiscoveryJobRepository discoveryJobRepository;
     private final DiscoveredBusinessRepository businessRepository;
-    private final SettingsService settingsService;
 
     public DiscoveryController(UrlDiscoveryService urlDiscoveryService,
-                               BusinessWebsiteScrapeService websiteScrapeService,
                                DiscoveryJobRepository discoveryJobRepository,
-                               DiscoveredBusinessRepository businessRepository,
-                               SettingsService settingsService) {
+                               DiscoveredBusinessRepository businessRepository) {
         this.urlDiscoveryService = urlDiscoveryService;
-        this.websiteScrapeService = websiteScrapeService;
         this.discoveryJobRepository = discoveryJobRepository;
         this.businessRepository = businessRepository;
-        this.settingsService = settingsService;
     }
 
     @GetMapping
@@ -79,13 +75,65 @@ public class DiscoveryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Keyword and location are required");
         }
 
-        DiscoveryJob job = urlDiscoveryService.discover(form.getKeyword(), form.getLocation(), form.getMaxResults());
+        // Start discovery in background thread
+        DiscoveryJob job = new DiscoveryJob();
+        job.setKeyword(form.getKeyword());
+        job.setLocation(form.getLocation());
+        job.setTargetPageType(form.getTargetPageType());
+        job.setCustomSearchPattern(form.getCustomPattern());
+        job.setStatus("RUNNING");
+        job.setCreatedAt(LocalDateTime.now());
+        job.setDiscoverySource("GMAPS_GOOGLE_SEARCH");
+        discoveryJobRepository.save(job);
 
-        websiteScrapeService.enrichMultiple(job.getBusinesses());
+        // Run discovery asynchronously
+        CompletableFuture.runAsync(() -> {
+            try {
+                urlDiscoveryService.discoverAsync(
+                    job.getId(), 
+                    form.getKeyword(), 
+                    form.getLocation(), 
+                    form.getTargetPageType(),
+                    form.getCustomPattern(),
+                    null
+                );
+            } catch (Exception e) {
+                job.setStatus("FAILED");
+                job.setCompletedAt(LocalDateTime.now());
+                discoveryJobRepository.save(job);
+            }
+        });
 
+        model.addAttribute("jobId", job.getId());
+        model.addAttribute("keyword", form.getKeyword());
+        model.addAttribute("location", form.getLocation());
+        return "discovery/progress :: progressFragment";
+    }
+
+    @GetMapping("/{jobId}/progress")
+    public String getProgress(@PathVariable Long jobId, Model model) {
+        DiscoveryJob job = discoveryJobRepository.findById(jobId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        
         model.addAttribute("job", job);
-        model.addAttribute("businesses", businessRepository.findByDiscoveryJobIdOrderByBusinessNameAsc(job.getId()));
-        return "discovery/results :: resultsFragment";
+        model.addAttribute("businesses", businessRepository.findByDiscoveryJobIdOrderByBusinessNameAsc(jobId));
+        
+        if ("COMPLETED".equals(job.getStatus()) || "FAILED".equals(job.getStatus())) {
+            return "discovery/progress :: completedFragment";
+        }
+        return "discovery/progress :: progressFragment";
+    }
+
+    @GetMapping("/job/{jobId}/status")
+    public String getJobStatus(@PathVariable Long jobId, Model model) {
+        DiscoveryJob job = discoveryJobRepository.findById(jobId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found"));
+        
+        List<DiscoveredBusiness> businesses = businessRepository.findByDiscoveryJobIdOrderByBusinessNameAsc(jobId);
+        
+        model.addAttribute("job", job);
+        model.addAttribute("businesses", businesses);
+        return "discovery/results :: businessList";
     }
 
     @GetMapping("/{jobId}/results")
@@ -150,17 +198,15 @@ public class DiscoveryController {
         DiscoveredBusiness business = businessRepository.findById(businessId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business not found"));
 
-        websiteScrapeService.enrichBusinessData(business);
-        businessRepository.save(business);
-
-        redirectAttributes.addFlashAttribute("message", "Website scraped successfully");
+        redirectAttributes.addFlashAttribute("message", "Use Jobs to scrape discovered URLs");
         return "redirect:/discovery/" + business.getDiscoveryJob().getId() + "/results";
     }
 
     public static class DiscoveryForm {
         private String keyword = "";
         private String location = "";
-        private Integer maxResults = 100;
+        private String targetPageType = "FACEBOOK";
+        private String customPattern = "";
 
         public DiscoveryForm() {
         }
@@ -181,12 +227,20 @@ public class DiscoveryController {
             this.location = location;
         }
 
-        public Integer getMaxResults() {
-            return maxResults;
+        public String getTargetPageType() {
+            return targetPageType;
         }
 
-        public void setMaxResults(Integer maxResults) {
-            this.maxResults = maxResults;
+        public void setTargetPageType(String targetPageType) {
+            this.targetPageType = targetPageType;
+        }
+
+        public String getCustomPattern() {
+            return customPattern;
+        }
+
+        public void setCustomPattern(String customPattern) {
+            this.customPattern = customPattern;
         }
     }
 }

@@ -35,6 +35,12 @@ public class DiscoveredBusiness {
     @Column(name = "website_url", length = 500)
     private String websiteUrl;
 
+    @Column(name = "target_url", length = 500)
+    private String targetUrl;
+
+    @Column(name = "target_page_type", length = 50)
+    private String targetPageType;
+
     @Column(name = "email_address", length = 255)
     private String emailAddress;
 
@@ -86,6 +92,22 @@ public class DiscoveredBusiness {
 
     public void setWebsiteUrl(String websiteUrl) {
         this.websiteUrl = websiteUrl;
+    }
+
+    public String getTargetUrl() {
+        return targetUrl;
+    }
+
+    public void setTargetUrl(String targetUrl) {
+        this.targetUrl = targetUrl;
+    }
+
+    public String getTargetPageType() {
+        return targetPageType;
+    }
+
+    public void setTargetPageType(String targetPageType) {
+        this.targetPageType = targetPageType;
     }
 
     public String getEmailAddress() {

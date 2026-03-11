@@ -50,20 +50,51 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-zinc-300 mb-2" for="maxResults">
-                        Max Results
+                    <label class="block text-sm font-medium text-zinc-300 mb-2" for="targetPageType">
+                        Target Page Type
                     </label>
-                    <input type="number"
-                           id="maxResults"
-                           name="maxResults"
-                           placeholder="100"
-                           value="100"
-                           min="1"
-                           max="500"
-                           class="form-input-dark w-full"
-                           required/>
+                    <select id="targetPageType"
+                            name="targetPageType"
+                            style="background-color: white; color: black;"
+                            class="form-input-dark w-full"
+                            onchange="toggleCustomPattern()"
+                            required>
+                        <option value="FACEBOOK">Facebook</option>
+                        <option value="WEBSITE">Official Website</option>
+                        <option value="INSTAGRAM">Instagram</option>
+                        <option value="LINKEDIN">LinkedIn</option>
+                        <option value="TWITTER">Twitter/X</option>
+                        <option value="TIKTOK">TikTok</option>
+                        <option value="YOUTUBE">YouTube</option>
+                        <option value="CUSTOM">Custom</option>
+                    </select>
                 </div>
             </div>
+
+            <div id="customPatternContainer" class="mt-4" style="display: none;">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2" for="customPattern">
+                        Custom Type of Page
+                    </label>
+                    <input type="text"
+                           id="customPattern"
+                           name="customPattern"
+                           placeholder="e.g., contact page, menu, pricing"
+                           class="form-input-dark w-full"/>
+                </div>
+            </div>
+
+            <script>
+                function toggleCustomPattern() {
+                    const select = document.getElementById('targetPageType');
+                    const container = document.getElementById('customPatternContainer');
+                    if (select.value === 'CUSTOM') {
+                        container.style.display = 'block';
+                    } else {
+                        container.style.display = 'none';
+                    }
+                }
+            </script>
 
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit" class="btn btn-primary">
@@ -81,11 +112,15 @@
             <div class="flex items-start gap-3 text-sm text-blue-300">
                 <span class="material-symbols-outlined text-xl">info</span>
                 <div>
-                    <p class="font-medium text-blue-200 mb-1">How it works</p>
+                    <p class="font-medium text-blue-200 mb-1">How Discovery Works</p>
+                    <p class="text-blue-300/80 mb-2">
+                        <strong>Step 1:</strong> Searches Google Maps for business names using your keyword + location
+                    </p>
+                    <p class="text-blue-300/80 mb-2">
+                        <strong>Step 2:</strong> For each business name, searches Google for their Facebook page URL
+                    </p>
                     <p class="text-blue-300/80">
-                        Enter a business type and location to discover businesses from Google Maps.
-                        The system will automatically extract business names, addresses, phone numbers,
-                        websites, and scrape websites for email addresses and social media links.
+                        <strong>Result:</strong> A list of Facebook URLs ready to scrape using Jobs and Recipes
                     </p>
                 </div>
             </div>

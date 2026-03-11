@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/006-add-progress-json-changelog.yaml
   - include:
       file: db/changelog/changes/add-discovery-tables.xml
+  - include:
+      file: db/changelog/007-add-target-page-type-fields.yaml

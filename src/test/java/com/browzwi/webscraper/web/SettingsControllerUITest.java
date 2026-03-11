@@ -39,7 +39,7 @@ class SettingsControllerUITest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("settings/index"))
                 .andExpect(model().attributeExists("settings"))
-                .andExpect(model().attributeExists("options"))
+                .andExpect(model().attributeExists("fetcherOptions"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Settings")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Scraper Engine")));
     }
@@ -97,8 +97,7 @@ class SettingsControllerUITest {
         // When & Then
         mockMvc.perform(get("/settings"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Save Changes")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Reset")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Save Settings")));
     }
 
     @Test

@@ -34,33 +34,18 @@ public class SettingsController {
     public String view(Model model) {
         SettingsForm form = new SettingsForm();
         form.setFetcherType(settingsService.getFetcherType());
-        form.setDiscoverySource(DiscoverySourceType.valueOf(settingsService.getDiscoverySourceType()));
-        form.setGoogleSearchSiteFilter(settingsService.getGoogleSearchSiteFilter());
-        form.setClaudeApiKey(settingsService.getClaudeApiKey());
         
         model.addAttribute("pageTitle", "Settings");
         model.addAttribute("settings", form);
         model.addAttribute("fetcherOptions", ScrapeFetcherType.values());
-        model.addAttribute("discoverySources", DiscoverySourceType.values());
         return "settings/index";
     }
 
     @PostMapping
     public String update(@ModelAttribute("settings") SettingsForm form,
-                         RedirectAttributes redirectAttributes,
-                         @RequestParam(value = "saveScraper", required = false) String saveScraper,
-                         @RequestParam(value = "saveDiscovery", required = false) String saveDiscovery) {
-        
-        if (saveScraper != null) {
-            settingsService.updateFetcherType(form.getFetcherType());
-            redirectAttributes.addFlashAttribute("message", "Scraper engine settings saved successfully");
-        } else if (saveDiscovery != null) {
-            settingsService.updateDiscoverySourceType(form.getDiscoverySource());
-            settingsService.updateGoogleSearchSiteFilter(form.getGoogleSearchSiteFilter());
-            settingsService.updateClaudeApiKey(form.getClaudeApiKey());
-            redirectAttributes.addFlashAttribute("message", "URL discovery settings saved successfully");
-        }
-        
+                         RedirectAttributes redirectAttributes) {
+        settingsService.updateFetcherType(form.getFetcherType());
+        redirectAttributes.addFlashAttribute("message", "Settings saved successfully");
         return "redirect:/settings";
     }
 }

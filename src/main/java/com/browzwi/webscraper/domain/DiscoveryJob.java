@@ -32,6 +32,12 @@ public class DiscoveryJob {
     @Column(nullable = false, length = 255)
     private String location;
 
+    @Column(name = "target_page_type", length = 50)
+    private String targetPageType;
+
+    @Column(name = "custom_search_pattern", length = 255)
+    private String customSearchPattern;
+
     @Column(name = "discovery_source", length = 50)
     private String discoverySource;
 
@@ -71,6 +77,22 @@ public class DiscoveryJob {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getTargetPageType() {
+        return targetPageType;
+    }
+
+    public void setTargetPageType(String targetPageType) {
+        this.targetPageType = targetPageType;
+    }
+
+    public String getCustomSearchPattern() {
+        return customSearchPattern;
+    }
+
+    public void setCustomSearchPattern(String customSearchPattern) {
+        this.customSearchPattern = customSearchPattern;
     }
 
     public String getDiscoverySource() {

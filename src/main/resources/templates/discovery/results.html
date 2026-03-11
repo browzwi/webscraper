@@ -39,7 +39,8 @@
                         <th class="text-left">Address</th>
                         <th class="text-left">Email</th>
                         <th class="text-left">Phone</th>
-                        <th class="text-left">Website</th>
+                        <th class="text-left">Target URL</th>
+                        <th class="text-left">Type</th>
                         <th class="text-left">Status</th>
                         <th class="text-left">Actions</th>
                     </tr>
@@ -58,13 +59,20 @@
                         </td>
                         <td class="text-zinc-300 text-sm" th:text="${business.phoneNumber}"></td>
                         <td>
-                            <a th:if="${business.websiteUrl != null && !business.websiteUrl.isEmpty()}"
-                               th:href="${business.websiteUrl}"
+                            <a th:if="${business.targetUrl != null && !business.targetUrl.isEmpty()}"
+                               th:href="${business.targetUrl}"
                                target="_blank"
                                class="text-primary hover:text-primary-400 text-sm truncate max-w-xs block"
-                               th:text="${business.websiteUrl}"></a>
-                            <span th:unless="${business.websiteUrl != null && !business.websiteUrl.isEmpty()}"
-                                  class="text-zinc-500 text-sm">No website</span>
+                               th:text="${business.targetUrl}"></a>
+                            <span th:unless="${business.targetUrl != null && !business.targetUrl.isEmpty()}"
+                                  class="text-zinc-500 text-sm">No URL found</span>
+                        </td>
+                        <td>
+                            <span th:if="${business.targetPageType != null}"
+                                  class="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded"
+                                  th:text="${business.targetPageType}"></span>
+                            <span th:unless="${business.targetPageType != null}"
+                                  class="text-zinc-500 text-sm">-</span>
                         </td>
                         <td>
                             <span th:class="${'badge ' + 
