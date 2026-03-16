@@ -4,6 +4,7 @@ import com.browzwi.webscraper.storage.FileStorageProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
  * Main entry point for the Web Scraper Application.
@@ -19,6 +20,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  * @since 1.0
  */
 @SpringBootApplication
+@EnableAsync
 @EnableConfigurationProperties(FileStorageProperties.class)
 public class WebScraperApplication {
 

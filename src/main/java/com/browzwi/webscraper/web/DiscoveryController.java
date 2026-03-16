@@ -2,10 +2,7 @@ package com.browzwi.webscraper.web;
 
 import com.browzwi.webscraper.domain.DiscoveredBusiness;
 import com.browzwi.webscraper.domain.DiscoveryJob;
-import com.browzwi.webscraper.service.BusinessWebsiteScrapeService;
 import com.browzwi.webscraper.service.UrlDiscoveryService;
-import com.browzwi.webscraper.service.settings.SettingsService;
-import com.browzwi.webscraper.service.settings.DiscoverySourceType;
 import com.browzwi.webscraper.repository.DiscoveryJobRepository;
 import com.browzwi.webscraper.repository.DiscoveredBusinessRepository;
 import jakarta.validation.Valid;
@@ -13,7 +10,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -86,23 +82,15 @@ public class DiscoveryController {
         job.setDiscoverySource("GMAPS_GOOGLE_SEARCH");
         discoveryJobRepository.save(job);
 
-        // Run discovery asynchronously
-        CompletableFuture.runAsync(() -> {
-            try {
-                urlDiscoveryService.discoverAsync(
-                    job.getId(), 
-                    form.getKeyword(), 
-                    form.getLocation(), 
-                    form.getTargetPageType(),
-                    form.getCustomPattern(),
-                    null
-                );
-            } catch (Exception e) {
-                job.setStatus("FAILED");
-                job.setCompletedAt(LocalDateTime.now());
-                discoveryJobRepository.save(job);
-            }
-        });
+        // Run discovery asynchronously via Spring @Async
+        urlDiscoveryService.discoverAsync(
+            job.getId(),
+            form.getKeyword(),
+            form.getLocation(),
+            form.getTargetPageType(),
+            form.getCustomPattern(),
+            null
+        );
 
         model.addAttribute("jobId", job.getId());
         model.addAttribute("keyword", form.getKeyword());
@@ -158,7 +146,7 @@ public class DiscoveryController {
             Sheet sheet = workbook.createSheet("Discovered Businesses");
 
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Business Name", "Address", "Email", "Social Media Links", "Contact Number", "Website"};
+            String[] headers = {"Business Name", "Google Search URL"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -168,19 +156,11 @@ public class DiscoveryController {
             for (DiscoveredBusiness business : businesses) {
                 Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(business.getBusinessName() != null ? business.getBusinessName() : "");
-                row.createCell(1).setCellValue(business.getAddress() != null ? business.getAddress() : "");
-                row.createCell(2).setCellValue(business.getEmailAddress() != null ? business.getEmailAddress() : "");
-                row.createCell(3).setCellValue(business.getSocialMediaLinks() != null ? business.getSocialMediaLinks() : "");
-                row.createCell(4).setCellValue(business.getPhoneNumber() != null ? business.getPhoneNumber() : "");
-                row.createCell(5).setCellValue(business.getWebsiteUrl() != null ? business.getWebsiteUrl() : "");
+                row.createCell(1).setCellValue(business.getTargetUrl() != null ? business.getTargetUrl() : "");
             }
 
             sheet.autoSizeColumn(0);
             sheet.autoSizeColumn(1);
-            sheet.autoSizeColumn(2);
-            sheet.autoSizeColumn(3);
-            sheet.autoSizeColumn(4);
-            sheet.autoSizeColumn(5);
 
             workbook.write(outputStream);
 
@@ -190,16 +170,6 @@ public class DiscoveryController {
 
             return new ResponseEntity<>(outputStream.toByteArray(), httpHeaders, HttpStatus.OK);
         }
-    }
-
-    @PostMapping("/business/{businessId}/scrape")
-    public String scrapeBusinessWebsite(@PathVariable Long businessId,
-                                        RedirectAttributes redirectAttributes) {
-        DiscoveredBusiness business = businessRepository.findById(businessId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business not found"));
-
-        redirectAttributes.addFlashAttribute("message", "Use Jobs to scrape discovered URLs");
-        return "redirect:/discovery/" + business.getDiscoveryJob().getId() + "/results";
     }
 
     public static class DiscoveryForm {

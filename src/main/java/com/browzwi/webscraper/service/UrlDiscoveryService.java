@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Random;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,79 +74,60 @@ public class UrlDiscoveryService {
         return job;
     }
 
+    @Async
     @Transactional
     public void discoverAsync(Long jobId, String keyword, String location, String targetPageType, String customPattern, Integer maxResults) {
         if (maxResults == null || maxResults < 1) {
             maxResults = 100;
         }
-        
+
         DiscoveryJob job = discoveryJobRepository.findById(jobId)
             .orElseThrow(() -> new RuntimeException("Job not found"));
 
         try {
             List<DiscoveredBusiness> results = discoverViaMapsAndSearch(keyword, location, targetPageType, customPattern, maxResults);
-            
+
             results.forEach(b -> {
                 b.setDiscoveryJob(job);
                 businessRepository.save(b);
             });
-            
+
             job.setResultsCount(results.size());
             job.setStatus("COMPLETED");
             job.setCompletedAt(LocalDateTime.now());
             discoveryJobRepository.save(job);
         } catch (Exception e) {
-            job.setStatus("FAILED");
-            job.setCompletedAt(LocalDateTime.now());
-            discoveryJobRepository.save(job);
-            throw e;
+            log.error("Discovery job {} failed", jobId, e);
+            discoveryJobRepository.findById(jobId).ifPresent(j -> {
+                j.setStatus("FAILED");
+                j.setCompletedAt(LocalDateTime.now());
+                discoveryJobRepository.save(j);
+            });
         }
     }
 
     private List<DiscoveredBusiness> discoverViaMapsAndSearch(String keyword, String location, String targetPageType, String customPattern, Integer maxResults) {
-        log.info("Step 1: Discovering business names from Google Maps");
+        log.info("Discovering business names from Google Maps and generating search URLs");
         
-        // Step 1: Get business names ONLY from Google Maps
+        // Get business names from Google Maps
         List<DiscoveredBusiness> businesses = discoverBusinessNamesFromMaps(keyword, location, maxResults);
         log.info("Found {} business names from Maps", businesses.size());
         
-        // Step 2: For each business name, find target URL
+        // Generate Google Search URL for each business
         TargetPageType pageType = TargetPageType.valueOf(targetPageType);
-        log.info("Step 2: Finding {} URLs for each business", pageType.getDisplayName());
-        
-        int found = 0;
         for (DiscoveredBusiness business : businesses) {
-            try {
-                log.info("Searching {} URL for: {}", pageType.getDisplayName(), business.getBusinessName());
-                
-                String targetUrl = googleSearchDiscoveryService.discoverTargetUrl(
-                    business.getBusinessName(), 
-                    location,
-                    pageType,
-                    customPattern
-                );
-                
-                if (targetUrl != null && !targetUrl.isBlank()) {
-                    business.setTargetUrl(targetUrl);
-                    business.setTargetPageType(targetPageType);
-                    business.setStatus("DISCOVERED");
-                    found++;
-                    log.info("✓ Found: {}", targetUrl);
-                } else {
-                    business.setStatus("NO_URL_FOUND");
-                    log.warn("✗ No {} URL found for: {}", pageType.getDisplayName(), business.getBusinessName());
-                }
-                
-                // Small delay (reduced from 2s)
-                Thread.sleep(500 + random.nextInt(500));
-                
-            } catch (Exception e) {
-                log.error("Error finding URL for {}: {}", business.getBusinessName(), e.getMessage());
-                business.setStatus("ERROR");
-            }
+            String searchQuery = business.getBusinessName() + " " + location + " " + pageType.getDisplayName();
+            String encodedQuery = URLEncoder.encode(searchQuery, StandardCharsets.UTF_8);
+            String googleSearchUrl = "https://www.google.com/search?q=" + encodedQuery;
+            
+            business.setTargetUrl(googleSearchUrl);
+            business.setTargetPageType(targetPageType);
+            business.setStatus("DISCOVERED");
+            
+            log.info("Generated URL for {}: {}", business.getBusinessName(), googleSearchUrl);
         }
         
-        log.info("Discovery complete: {}/{} businesses have {} URLs", found, businesses.size(), pageType.getDisplayName());
+        log.info("Discovery complete: {} businesses with Google Search URLs ready for export", businesses.size());
         return businesses;
     }
 

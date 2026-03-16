@@ -1,40 +1,30 @@
-# WebScraper Project - Current Status Summary
+# WebScraper Project - Current Status
 
-**Date:** March 10, 2026  
-**Status:** ✅ URL Discovery Feature Complete
+**Last Updated:** March 16, 2026
+**Version:** 1.0.0
 
 ---
 
-## What's New (As of Today)
+## Feature Status
 
-### ✅ Completed Features
-
-#### 1. Multi-Source URL Discovery System
-Three discovery sources now available:
-- **GOOGLE_MAPS** - Direct scraping from Google Maps
-- **GOOGLE_SEARCH** - Google Search results scraping  
-- **GMAPS_GOOGLE_SEARCH** - Combined approach for maximum coverage
-
-#### 2. Business Data Extraction Pipeline
-Complete data extraction for discovered businesses:
-- Business Name
-- Full Address
-- Phone Number
-- Website URL
-- Email Address (extracted from website)
-- Social Media Links (Facebook, Instagram, LinkedIn, etc.)
-
-#### 3. AI Integration
-- **Claude AI** support for enhanced search results
-- Configurable API key in Settings
-- Automatic fallback to Playwright scraping
-
-#### 4. Settings Management
-Configurable options via `SettingsController`:
-- Discovery source selection
-- Claude API key
-- Google search site filters
-- Playwright browser settings
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Recipe Builder (YAML) | ✅ Working | CSS/XPath selectors, multi-page support |
+| Recipe Live Test | ✅ Working | HTMX partial result rendering |
+| Scrape Jobs | ✅ Working | Manual + Quartz-scheduled execution |
+| Job Progress Tracking | ✅ Working | Per-target HTMX polling |
+| HtmlUnit Fetcher | ✅ Working | Fast, no JS execution |
+| Playwright Fetcher | ✅ Working | Full browser, JS support |
+| File Storage | ✅ Working | `./data/{jobId}/{targetId}/` |
+| URL Discovery (Google Maps) | ✅ Working | Playwright-based scraping |
+| URL Discovery (Google Search) | ⚠️ Fragile | Selectors break when Google changes HTML |
+| Business Email Extraction | ✅ Working | Visits website, parses mailto links |
+| Social Media Link Extraction | ✅ Working | Facebook, Instagram, LinkedIn, etc. |
+| Excel Export (Discovery) | ✅ Working | Apache POI |
+| Settings Management | ✅ Working | Persisted in `app_settings` table |
+| Claude AI Integration | ✅ Working | Optional; falls back to Playwright |
+| Spring Security / Auth | ✅ Working | DB-backed users, BCrypt passwords |
+| Liquibase Migrations | ✅ Working | H2 (test) + MySQL (dev/prod) |
 
 ---
 
@@ -42,134 +32,52 @@ Configurable options via `SettingsController`:
 
 | Component | Count |
 |-----------|-------|
-| Java Source Files | 87 |
-| Controllers | 8 |
-| Service Classes | 15+ |
-| Domain Entities | 12 |
-| Repositories | 10 |
-| Thymeleaf Templates | 20+ |
+| Java Source Files | ~50 |
+| Controllers | 7 |
+| Services | 12 |
+| Domain Entities | 11 |
+| Repositories | 8 |
+| Thymeleaf Templates | 30 |
+| Liquibase Changelogs | 5 |
 
 ---
 
-## New Files Added (March 2026)
+## Package Summary
 
-### Domain Entities
-- ✅ `DiscoveryJob.java` - Discovery job tracking
-- ✅ `DiscoveredBusiness.java` - Discovered business data
+```
+com.browzwi.webscraper/
+├── web/            Controllers, DTOs, view models
+├── service/        Business logic, Quartz jobs, settings, test sessions
+├── scraper/        Engine, fetchers (HtmlUnit/Playwright), YAML models
+├── domain/         JPA entities
+├── repository/     Spring Data JPA interfaces
+├── storage/        File persistence under ./data/
+├── security/       Spring Security config, dev admin initializer
+└── config/         Quartz configuration
+```
 
-### Services
-- ✅ `UrlDiscoveryService.java` - Main discovery orchestration
-- ✅ `GoogleSearchDiscoveryService.java` - Google Search scraping
-- ✅ `DiscoverySourceType.java` - Source type enum
-
-### Repositories
-- ✅ `DiscoveryJobRepository.java`
-- ✅ `DiscoveredBusinessRepository.java`
-
-### Controllers
-- ✅ `DiscoveryController.java` - Discovery UI
-- ✅ `SettingsController.java` - Settings management
-
-### DTOs
-- ✅ `SettingsForm.java` - Settings form data
-
-### Documentation
-- ✅ `CHANGELOG.md` - Complete changelog (NEW!)
-- ✅ `FEATURE_URL_DISCOVERY.md` - Discovery feature guide
-- ✅ `docs/system-documentation.md` - Full system docs
-- ✅ `docs/discovery-refactoring-summary.md` - Implementation details
+See `SYSTEM_ARCHITECTURE_CURRENT.md` for the full package tree and module breakdown.
 
 ---
 
-## Database Schema Changes
+## Database Tables
 
-### New Tables
-
-#### `discovery_job`
-```sql
-- id (BIGINT, PK)
-- keyword (VARCHAR 255)
-- location (VARCHAR 255)
-- discovery_source (VARCHAR 50)
-- status (VARCHAR 50)
-- results_count (INT)
-- created_at (DATETIME)
-- completed_at (DATETIME)
-```
-
-#### `discovered_business`
-```sql
-- id (BIGINT, PK)
-- business_name (VARCHAR 255)
-- address (VARCHAR 500)
-- phone_number (VARCHAR 100)
-- website_url (VARCHAR 500)
-- email_address (VARCHAR 255)
-- social_media_links (TEXT)
-- status (VARCHAR 50)
-- discovery_job_id (BIGINT, FK)
-```
+| Table | Purpose |
+|-------|---------|
+| `users` | Authentication |
+| `app_settings` | Key/value runtime settings |
+| `scraper_recipes` | YAML recipe definitions |
+| `scrape_jobs` | Job metadata + schedule |
+| `scrape_targets` | Per-URL targets within a job |
+| `scrape_result_data` | Extracted JSON + file paths |
+| `discovery_job` | Discovery run metadata |
+| `discovered_business` | Per-business discovery results |
 
 ---
 
-## Technology Additions
+## Configuration
 
-### New Dependencies (pom.xml)
-```xml
-<dependency>
-    <groupId>com.anthropic</groupId>
-    <artifactId>anthropic-java</artifactId>
-    <version>0.1.0</version>
-</dependency>
-```
-
-### Updated Dependencies
-- Playwright 1.46.0 (browser automation)
-- Jsoup 1.18.1 (HTML parsing)
-- Apache POI 5.2.5 (Excel export)
-- Flexmark 0.64.8 (Markdown conversion)
-
----
-
-## Service Architecture
-
-### Discovery Flow
-```
-User Input (keyword + location)
-         ↓
-DiscoveryController
-         ↓
-UrlDiscoveryService
-         ↓
-    ┌────┼────┐
-    ↓    ↓    ↓
-  GMAPS  GOOGLE  COMBINED
-    ↓    ↓    ↓
-PlaywrightFetcher
-         ↓
-DiscoveredBusiness Entities
-         ↓
-Database (discovered_business table)
-```
-
-### Email Extraction Flow
-```
-Discovered Business (website_url)
-         ↓
-EmailExtractionService
-         ↓
-PlaywrightFetcher (visit website)
-         ↓
-Jsoup (parse HTML for mailto: links)
-         ↓
-Update DiscoveredBusiness.emailAddress
-```
-
----
-
-## Configuration Options
-
-### application.yml
+### `application.yml` (shared defaults)
 ```yaml
 webscraper:
   storage:
@@ -181,128 +89,52 @@ webscraper:
       timeout: 20000
 ```
 
-### Runtime Settings (Database)
-- `discoverySourceType` - GOOGLE_MAPS | GOOGLE_SEARCH | GMAPS_GOOGLE_SEARCH
-- `claudeApiKey` - Anthropic API key
-- `googleSearchSiteFilter` - Optional site filter
-- `playwrightHeadless` - true/false
-- `playwrightTimeout` - milliseconds
+### Runtime Settings (via `/settings` UI)
 
----
-
-## API Endpoints
-
-### Discovery
-```
-GET  /discovery              - List discovery jobs
-POST /discovery              - Create discovery job
-GET  /discovery/{id}         - View job details
-POST /discovery/{id}/convert - Convert to recipe
-```
-
-### Settings
-```
-GET  /settings               - View settings
-POST /settings               - Update settings
-```
-
-### Scraping
-```
-GET  /recipes                - List recipes
-POST /recipes                - Create recipe
-GET  /jobs                   - List jobs
-POST /jobs                   - Create job
-GET  /jobs/{id}/results      - View results
-```
-
----
-
-## Usage Example
-
-### Via UI
-1. Navigate to `/discovery`
-2. Enter:
-   - Keyword: "accounting firms"
-   - Location: "Cavite, Philippines"
-   - Max Results: 100
-3. Select Discovery Source
-4. Click "Discover"
-5. Wait for completion
-6. View discovered businesses
-7. Convert to scraping recipe
-
-### Via API
-```bash
-curl -X POST http://localhost:8080/discovery \
-  -d "keyword=accounting+firms" \
-  -d "location=Cavite,+Philippines" \
-  -d "maxResults=100"
-```
-
----
-
-## Testing
-
-### Test Classes
-- `UrlDiscoveryServiceTest.java`
-- `GoogleSearchDiscoveryServiceTest.java`
-- `DiscoveredBusinessRepositoryTest.java`
-
-### Run Tests
-```bash
-./mvnw test
-```
-
----
-
-## Performance Metrics
-
-| Operation | Avg Time |
-|-----------|----------|
-| Google Maps Discovery (100 results) | 2-5 minutes |
-| Google Search Discovery (30 results) | 1-3 minutes |
-| Email Extraction (per website) | 3-10 seconds |
-| Social Media Extraction | 2-5 seconds |
+| Setting | Options |
+|---------|---------|
+| `scrapeFetcherType` | `HTMLUNIT`, `PLAYWRIGHT` |
+| `discoverySourceType` | `GOOGLE_MAPS`, `GOOGLE_SEARCH`, `GMAPS_GOOGLE_SEARCH` |
+| `claudeApiKey` | Anthropic API key (optional) |
+| `googleSearchSiteFilter` | e.g. `facebook.com` (optional) |
+| `playwrightHeadless` | `true` / `false` |
+| `playwrightTimeout` | milliseconds |
 
 ---
 
 ## Known Limitations
 
-1. **Rate Limiting**: Google may temporarily block aggressive scraping
-2. **Dynamic Content**: Some websites require JavaScript rendering
-3. **Email Accuracy**: Not all websites display email addresses
-4. **CAPTCHA**: May encounter CAPTCHA challenges on heavy usage
+1. **Google Search scraping is fragile** — Google's HTML structure changes frequently; selectors may stop working. Consider Google Custom Search API for production reliability.
+2. **Rate limiting** — Aggressive Google Maps/Search scraping may trigger temporary blocks or CAPTCHAs.
+3. **Email extraction accuracy** — Depends on whether the target website exposes mailto links.
+4. **Playwright startup cost** — Browser launch adds latency; HtmlUnit is faster for static sites.
 
 ---
 
-## Next Steps (Future Enhancements)
+## Development Setup
 
-- [ ] Official Google Places API integration
-- [ ] Bing Maps support
-- [ ] Batch email extraction optimization
-- [ ] Social media profile scraper
-- [ ] CSV/Excel export from discovery
-- [ ] Scheduled discovery jobs
-- [ ] Duplicate business detection
-- [ ] Lead scoring system
+### Prerequisites
+- Java 17+
+- Maven 3.6+
+- MySQL 8.4+ (dev/prod) — H2 used automatically for tests
+- Node.js (optional, for Tailwind CSS recompilation)
 
----
-
-## Quick Start
-
+### Run (dev profile)
 ```bash
-# Navigate to project
-cd C:\Users\lanzc\Downloads\webscraper-main\webscraper-main
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+# → http://localhost:8080
+# Default login: admin@cvsu.edu.ph / admin123
+```
 
-# Run with Maven wrapper
-.\mvnw.cmd spring-boot:run
+### Run Tests
+```bash
+./mvnw test -q
+```
 
-# Open browser
-http://localhost:8080
-
-# Default login (dev profile)
-Username: admin@cvsu.edu.ph
-Password: admin123
+### Production Build
+```bash
+./mvnw clean package -Pproduction
+java -jar target/webscraper-0.0.1-SNAPSHOT.jar --spring.profiles.active=production
 ```
 
 ---
@@ -311,18 +143,10 @@ Password: admin123
 
 | File | Purpose |
 |------|---------|
-| `README.md` | Main documentation |
-| `CHANGELOG.md` | Version history & changes |
-| `LOCAL_SETUP.md` | Local development setup |
-| `USAGE_GUIDE.md` | User guide |
-| `CODEBASE_GUIDE.md` | Architecture guide |
-| `FEATURE_URL_DISCOVERY.md` | Discovery feature details |
-| `docs/system-documentation.md` | Complete system docs |
-
----
-
-## Contact
-
-For questions or issues, refer to the documentation files or check the project's GitHub repository.
-
-**Last Scan Date:** March 10, 2026
+| `README.md` | Full feature guide and setup instructions |
+| `SYSTEM_ARCHITECTURE_CURRENT.md` | Package structure, flows, DB schema, endpoints |
+| `CHANGELOG.md` | Version history |
+| `LOCAL_SETUP.md` | Local dev environment setup |
+| `USAGE_GUIDE.md` | End-user guide |
+| `CODEBASE_GUIDE.md` | Developer architecture guide |
+| `docs/system-documentation.md` | Detailed system documentation |

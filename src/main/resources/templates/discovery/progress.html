@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Progress Fragment - Shows while searching -->
+<div th:fragment="progressFragment" 
+     th:attr="hx-get=@{/discovery/{id}/progress(id=${jobId})},hx-trigger='every 2s',hx-swap='outerHTML'"
+     class="card max-w-4xl">
+    
+    <div class="flex items-center gap-4 mb-6">
+        <div class="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+        <div>
+            <h3 class="text-white text-lg font-bold">Discovering Businesses...</h3>
+            <p class="text-zinc-400 text-sm">
+                Searching for "<span th:text="${keyword}"></span>" in <span th:text="${location}"></span>
+            </p>
+        </div>
+    </div>
+
+    <div class="space-y-3 bg-zinc-900/50 rounded-xl p-4 border border-zinc-800">
+        <div class="flex items-center gap-3 text-sm">
+            <span class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary text-sm">search</span>
+            </span>
+            <span class="text-zinc-300">Step 1: Searching Google Maps for businesses...</span>
+        </div>
+        
+        <div class="flex items-center gap-3 text-sm">
+            <span class="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center">
+                <span class="material-symbols-outlined text-zinc-500 text-sm">link</span>
+            </span>
+            <span class="text-zinc-500">Step 2: Finding Facebook pages...</span>
+        </div>
+        
+        <div class="flex items-center gap-3 text-sm">
+            <span class="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center">
+                <span class="material-symbols-outlined text-zinc-500 text-sm">email</span>
+            </span>
+            <span class="text-zinc-500">Step 3: Extracting contact information...</span>
+        </div>
+    </div>
+
+    <div th:if="${job != null && job.resultsCount > 0}" class="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-xl">
+        <p class="text-green-400 text-sm flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg">check_circle</span>
+            Found <strong th:text="${job.resultsCount}"></strong> businesses so far...
+        </p>
+    </div>
+</div>
+
+<!-- Completed Fragment - Shows when done -->
+<div th:fragment="completedFragment" class="space-y-6">
+    <div class="card max-w-4xl bg-green-500/10 border-green-500/30">
+        <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-green-400 text-4xl">check_circle</span>
+            <div>
+                <h3 class="text-white text-lg font-bold">Discovery Complete!</h3>
+                <p class="text-zinc-300 text-sm">
+                    Found <strong class="text-green-400" th:text="${job.resultsCount}"></strong> businesses for 
+                    "<span th:text="${job.keyword}"></span>" in <span th:text="${job.location}"></span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card max-w-4xl">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-white text-lg font-bold">Discovered Businesses</h3>
+            <div class="flex gap-3">
+                <a th:href="@{/discovery/{id}/export(id=${job.id})}" class="btn btn-primary">
+                    <span class="material-symbols-outlined text-lg">download</span>
+                    Export Excel
+                </a>
+                <a href="/discovery" class="btn btn-ghost">
+                    <span class="material-symbols-outlined text-lg">search</span>
+                    New Search
+                </a>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="table-dark w-full">
+                <thead>
+                    <tr>
+                        <th>Business Name</th>
+                        <th>Address</th>
+                        <th>Phone</th>
+                        <th>Website</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="business : ${businesses}">
+                        <td class="text-white font-medium" th:text="${business.businessName}"></td>
+                        <td class="text-zinc-300 text-sm" th:text="${business.address ?: '-'}"></td>
+                        <td class="text-zinc-300 text-sm" th:text="${business.phoneNumber ?: '-'}"></td>
+                        <td class="text-zinc-300 text-sm">
+                            <a th:if="${business.websiteUrl}" 
+                               th:href="${business.websiteUrl}" 
+                               target="_blank"
+                               class="text-primary hover:underline">
+                                View
+                            </a>
+                            <span th:unless="${business.websiteUrl}">-</span>
+                        </td>
+                        <td class="text-zinc-300 text-sm" th:text="${business.emailAddress ?: '-'}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</html>

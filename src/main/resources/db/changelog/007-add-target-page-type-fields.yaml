@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-add-target-page-type-fields
+      author: system
+      changes:
+        - addColumn:
+            tableName: discovery_job
+            columns:
+              - column:
+                  name: target_page_type
+                  type: varchar(50)
+                  defaultValue: 'FACEBOOK'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: custom_search_pattern
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+        
+        - addColumn:
+            tableName: discovered_business
+            columns:
+              - column:
+                  name: target_url
+                  type: varchar(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: target_page_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: true
