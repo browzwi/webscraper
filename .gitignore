@@ -1,4 +1,6 @@
 node_modules
+data/
+playwright-google-cache/
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
